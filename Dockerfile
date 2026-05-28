@@ -19,7 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package.json package-lock.json* ./
 COPY backend/package.json backend/
 COPY frontend/package.json frontend/
-RUN npm install --workspace=backend --no-audit --no-fund
+# npm workspaces hoist deps to the root node_modules; ensure the per-workspace
+# dir exists so the runtime-stage COPY below never fails on a missing path.
+RUN npm install --workspace=backend --no-audit --no-fund \
+    && mkdir -p backend/node_modules
 COPY backend/ backend/
 RUN npm run build --workspace=backend
 
