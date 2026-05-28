@@ -2,7 +2,7 @@ services:
   dashboard:
     build: .
     # or use the published image:
-    # image: ghcr.io/yourusername/selfhost-dashboard:latest
+    # image: ghcr.io/wrnbenji/selfhost-dashboard:latest
     container_name: selfhost-dashboard
     restart: unless-stopped
     ports:
