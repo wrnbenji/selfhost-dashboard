@@ -1,0 +1,14 @@
+services:
+  dashboard:
+    build: .
+    # or use the published image:
+    # image: ghcr.io/yourusername/selfhost-dashboard:latest
+    container_name: selfhost-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data:/data
+      # optional YAML config:
+      # - ./services.yaml:/app/services.yaml:ro

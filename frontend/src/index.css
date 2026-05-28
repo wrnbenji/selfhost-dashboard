@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* light theme — neutral with cool tint, almost paper */
+    --bg: oklch(0.985 0.003 250);
+    --surface: oklch(1 0 0);
+    --surface-hover: oklch(0.965 0.005 250);
+    --border: oklch(0.92 0.005 250);
+    --border-strong: oklch(0.84 0.008 250);
+    --fg: oklch(0.22 0.01 250);
+    --fg-muted: oklch(0.48 0.01 250);
+    --fg-subtle: oklch(0.66 0.008 250);
+    --accent: oklch(0.55 0.18 145);
+    --accent-fg: oklch(0.98 0.01 145);
+    --online: oklch(0.62 0.17 145);
+    --offline: oklch(0.62 0.20 27);
+    --unknown: oklch(0.72 0.01 250);
+
+    color-scheme: light;
+  }
+
+  .dark {
+    /* dark theme — terminal panel, warm-neutral not pure black */
+    --bg: oklch(0.16 0.005 250);
+    --surface: oklch(0.20 0.006 250);
+    --surface-hover: oklch(0.235 0.008 250);
+    --border: oklch(0.28 0.008 250);
+    --border-strong: oklch(0.36 0.01 250);
+    --fg: oklch(0.97 0.005 250);
+    --fg-muted: oklch(0.72 0.01 250);
+    --fg-subtle: oklch(0.52 0.008 250);
+    --accent: oklch(0.78 0.20 145);
+    --accent-fg: oklch(0.16 0.04 145);
+    --online: oklch(0.78 0.20 145);
+    --offline: oklch(0.72 0.20 27);
+    --unknown: oklch(0.45 0.008 250);
+
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: 'Mona Sans', system-ui, sans-serif;
+    font-feature-settings: 'ss01', 'ss02', 'cv11';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-fg);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Mona Sans', system-ui, sans-serif;
+    font-stretch: 110%;
+    letter-spacing: -0.02em;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

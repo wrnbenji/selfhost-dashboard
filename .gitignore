@@ -1,0 +1,23 @@
+node_modules/
+dist/
+
+# build output (frontend is compiled into backend/public at build time)
+backend/public/
+*.tsbuildinfo
+
+# runtime data — SQLite db + WAL/SHM sidecars, anywhere
+data/
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# env & local
+.env
+.env.local
+
+# internal planning doc — not for the public repo
+ROADMAP.md
+
+.DS_Store
+*.log
