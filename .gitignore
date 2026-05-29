@@ -19,5 +19,8 @@ data/
 # internal planning doc — not for the public repo
 ROADMAP.md
 
+# hero GIF capture scratch dir — local-only, not for the public repo
+_hero/
+
 .DS_Store
 *.log
