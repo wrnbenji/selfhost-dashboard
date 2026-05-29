@@ -2,7 +2,7 @@
 
 # 🐳 selfhost-dashboard
 
-**A beautiful, fast homelab dashboard that auto-discovers your Docker containers.**
+**A fast homelab dashboard that builds itself from your Docker containers.**
 
 [![Build](https://github.com/wrnbenji/selfhost-dashboard/actions/workflows/docker.yml/badge.svg)](https://github.com/wrnbenji/selfhost-dashboard/actions/workflows/docker.yml)
 [![GHCR image](https://img.shields.io/badge/ghcr.io-image-2496ED?logo=docker&logoColor=white)](https://github.com/wrnbenji/selfhost-dashboard/pkgs/container/selfhost-dashboard)
@@ -19,9 +19,9 @@
 
 ---
 
-> **Status:** v0.1 — designed to run on your LAN or behind a reverse proxy. No built-in auth yet (planned for v0.2).
+> **Status:** v0.1. Made to run on your LAN or behind a reverse proxy. There's no built-in auth yet; that's planned for v0.2.
 
-Tired of bookmarking every self-hosted service and editing a config file every time something changes? **selfhost-dashboard** reads the labels off your Docker containers and builds the dashboard for you — then watches each service's health in real time.
+Tired of bookmarking every self-hosted service and editing a config file every time something changes? selfhost-dashboard reads the labels off your Docker containers and builds the dashboard for you, then keeps an eye on each service's health in real time.
 
 ```bash
 docker run -d -p 3000:3000 \
@@ -36,11 +36,11 @@ Open <http://localhost:3000>. That's it.
 
 ## ✨ Features
 
-- 🔍 **Zero-config discovery** — label a container, the card appears within 30s
-- 📡 **Real-time health** — HTTP probes pushed live over SSE, no refresh
-- 📊 **Uptime & latency history** — per-service timeline, incidents, p95 latency
-- ✋ **Drag & drop** reordering · 🌙 **dark mode** · 📄 optional **YAML config**
-- 📦 **Single image**, one SQLite file — no external database, no dependencies
+- 🔍 **Zero-config discovery.** Label a container and its card shows up within 30 seconds.
+- 📡 **Real-time health.** HTTP probes pushed live over SSE, no refresh needed.
+- 📊 **Uptime & latency history.** Per-service timeline, incidents, p95 latency.
+- ✋ **Drag & drop** reordering, 🌙 **dark mode**, and optional 📄 **YAML config**.
+- 📦 **Single image**, one SQLite file. No external database, no extra dependencies.
 
 <details>
 <summary>🔍 <strong>How auto-discovery works</strong></summary>
@@ -48,8 +48,8 @@ Open <http://localhost:3000>. That's it.
 <br>
 
 The backend reads the Docker socket (read-only) and watches for containers
-labeled `dashboard.enable=true`. Add/remove the label and the card appears or
-disappears automatically — no restart, no config edit. See
+labeled `dashboard.enable=true`. Add or remove the label and the card appears or
+disappears automatically, with no restart and no config edit. See
 [Docker label discovery](#docker-label-discovery).
 
 </details>
@@ -80,7 +80,7 @@ docker run -d \
   ghcr.io/wrnbenji/selfhost-dashboard:latest
 ```
 
-Or with Compose — copy [`docker-compose.yml`](docker-compose.yml) and run `docker compose up -d`.
+Or with Compose: copy [`docker-compose.yml`](docker-compose.yml) and run `docker compose up -d`.
 
 **2. Label your services**
 
@@ -93,7 +93,7 @@ labels:
   - "dashboard.description=Media"    # optional
 ```
 
-**3. Open the dashboard** at <http://localhost:3000> — your services are already there.
+**3. Open the dashboard** at <http://localhost:3000>. Your services are already there.
 
 ### Docker label discovery
 
@@ -158,7 +158,7 @@ npm start      # serves API + UI on :3001
 npm run test --workspace=backend   # 42 tests
 ```
 
-**Stack:** Node + [Hono](https://hono.dev) · better-sqlite3 · React + Vite · Tailwind.
+**Stack:** Node + [Hono](https://hono.dev), better-sqlite3, React + Vite, Tailwind.
 
 ---
 
@@ -175,7 +175,7 @@ npm run test --workspace=backend   # 42 tests
 
 ## 🤝 Contributing
 
-Issues and PRs welcome — it's early days. See [Local development](#-local-development), and please run `npm run test --workspace=backend` before opening a PR.
+Issues and PRs are welcome, it's still early days. See [Local development](#-local-development), and please run `npm run test --workspace=backend` before opening a PR.
 
 ---
 
