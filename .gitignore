@@ -26,5 +26,8 @@ ROADMAP.md
 # hero GIF capture scratch dir — local-only, not for the public repo
 _hero/
 
+# launch / marketing drafts (reddit, HN, etc.) — local-only, never commit
+launch/
+
 .DS_Store
 *.log
