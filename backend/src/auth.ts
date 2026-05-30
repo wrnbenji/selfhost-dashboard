@@ -1,18 +1,49 @@
 import { randomBytes } from 'node:crypto'
 import type { Context, MiddlewareHandler } from 'hono'
-import { getSetting, setSetting } from './db.js'
-import { verifySession } from './auth-core.js'
+import { deleteSetting, getSetting, setSetting } from './db.js'
+import { checkPassword, hashPassword, verifyPassword, verifySession } from './auth-core.js'
 
 export const COOKIE_NAME = 'sdash_session'
+const HASH_KEY = 'auth_password_hash'
 const SESSION_TTL_MS = 7 * 86_400_000 // 7 days
 
-/** Auth is opt-in: a non-empty AUTH_PASSWORD turns the gate on. */
-export function isAuthEnabled(): boolean {
-  return Boolean(process.env.AUTH_PASSWORD)
+const envPassword = (): string => process.env.AUTH_PASSWORD ?? ''
+const storedHash = (): string | null => getSetting(HASH_KEY)
+
+/** True when the operator pinned the password via the AUTH_PASSWORD env var. */
+export function isEnvManaged(): boolean {
+  return Boolean(envPassword())
 }
 
-export function getPassword(): string {
-  return process.env.AUTH_PASSWORD ?? ''
+/**
+ * Auth is on when a password exists — either pinned via AUTH_PASSWORD (env wins)
+ * or set from the UI and stored (hashed) in the database.
+ */
+export function isAuthEnabled(): boolean {
+  return isEnvManaged() || Boolean(storedHash())
+}
+
+/** Validate a submitted login password against the active source. */
+export function verifyLogin(submitted: string): boolean {
+  if (isEnvManaged()) return checkPassword(submitted, envPassword())
+  return verifyPassword(submitted, storedHash() ?? undefined)
+}
+
+/** Set (or change) the UI-managed password. Rotates the secret to drop sessions. */
+export function setStoredPassword(plain: string): void {
+  setSetting(HASH_KEY, hashPassword(plain))
+  rotateSecret()
+}
+
+/** Disable UI-managed auth by clearing the stored password. */
+export function clearStoredPassword(): void {
+  deleteSetting(HASH_KEY)
+  rotateSecret()
+}
+
+/** Rotate the signing secret so every existing session cookie stops verifying. */
+export function rotateSecret(): void {
+  setSetting('auth_secret', randomBytes(32).toString('hex'))
 }
 
 export function ttlMs(): number {

@@ -41,7 +41,11 @@ describe('auth gate (AUTH_PASSWORD set)', () => {
   test('status reports auth required and not yet authed', async () => {
     const r = await req('/api/auth/status')
     assert.equal(r.status, 200)
-    assert.deepEqual(await r.json(), { required: true, authed: false })
+    assert.deepEqual(await r.json(), {
+      required: true,
+      authed: false,
+      env_managed: true,
+    })
   })
 
   test('a protected route is 401 without a session', async () => {
@@ -65,7 +69,7 @@ describe('auth gate (AUTH_PASSWORD set)', () => {
     assert.equal(protectedRes.status, 200)
 
     const status = await (await req('/api/auth/status', { headers: { cookie } })).json()
-    assert.deepEqual(status, { required: true, authed: true })
+    assert.deepEqual(status, { required: true, authed: true, env_managed: true })
   })
 
   test('logout clears the cookie', async () => {
@@ -79,5 +83,10 @@ describe('auth gate (AUTH_PASSWORD set)', () => {
       headers: { cookie: 'sdash_session=9999999999999.deadbeef' },
     })
     assert.equal(r.status, 401)
+  })
+
+  test('changing the password is refused when env-managed', async () => {
+    const r = await postJSON('/api/auth/password', { new_password: 'whatever' })
+    assert.equal(r.status, 400)
   })
 })

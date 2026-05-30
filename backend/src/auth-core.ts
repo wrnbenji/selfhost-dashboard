@@ -1,4 +1,10 @@
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  scryptSync,
+  timingSafeEqual,
+} from 'node:crypto'
 
 function hmac(secret: string, msg: string): string {
   return createHmac('sha256', secret).update(msg).digest('hex')
@@ -46,4 +52,28 @@ export function checkPassword(submitted: string, expected: string): boolean {
   const a = createHash('sha256').update(String(submitted)).digest()
   const b = createHash('sha256').update(String(expected)).digest()
   return timingSafeEqual(a, b)
+}
+
+const SCRYPT_KEYLEN = 64
+
+/**
+ * Hash a password for at-rest storage as `<salt>:<derivedKey>` (both hex). A
+ * random per-password salt means the same password hashes differently each time.
+ */
+export function hashPassword(plain: string): string {
+  const salt = randomBytes(16).toString('hex')
+  const derived = scryptSync(plain, salt, SCRYPT_KEYLEN).toString('hex')
+  return `${salt}:${derived}`
+}
+
+export function verifyPassword(plain: string, stored: string | undefined): boolean {
+  if (!stored) return false
+  const parts = stored.split(':')
+  if (parts.length !== 2) return false
+  const [salt, derivedHex] = parts
+  if (!salt || !derivedHex) return false
+  const expected = Buffer.from(derivedHex, 'hex')
+  if (expected.length !== SCRYPT_KEYLEN) return false
+  const actual = scryptSync(plain, salt, SCRYPT_KEYLEN)
+  return timingSafeEqual(actual, expected)
 }

@@ -169,4 +169,22 @@ export const api = {
   logout: async (): Promise<void> => {
     await fetch('/api/auth/logout', { method: 'POST' })
   },
+  setPassword: async (body: {
+    current_password?: string
+    new_password: string
+  }): Promise<{ ok: boolean; enabled: boolean }> => {
+    const r = await fetch('/api/auth/password', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!r.ok) {
+      const msg = await r
+        .json()
+        .then((b) => (b as { error?: string }).error)
+        .catch(() => null)
+      throw new Error(msg ?? `POST password ${r.status}`)
+    }
+    return r.json()
+  },
 }

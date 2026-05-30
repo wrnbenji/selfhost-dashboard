@@ -96,6 +96,8 @@ export interface Settings {
 export interface AuthStatus {
   required: boolean
   authed: boolean
+  /** True when the password is pinned via the AUTH_PASSWORD env var (UI read-only). */
+  env_managed: boolean
 }
 
 export type NotificationChannel = 'webhook' | 'discord'

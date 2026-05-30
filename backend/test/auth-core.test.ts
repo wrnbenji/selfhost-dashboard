@@ -1,6 +1,12 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { checkPassword, signSession, verifySession } from '../src/auth-core.js'
+import {
+  checkPassword,
+  hashPassword,
+  signSession,
+  verifyPassword,
+  verifySession,
+} from '../src/auth-core.js'
 
 const SECRET = 'test-secret-abc'
 
@@ -51,5 +57,28 @@ describe('checkPassword', () => {
   test('an empty expected password always fails', () => {
     assert.equal(checkPassword('', ''), false)
     assert.equal(checkPassword('x', ''), false)
+  })
+})
+
+describe('password hashing (scrypt)', () => {
+  test('a hash round-trips with the correct password', () => {
+    const stored = hashPassword('hunter2')
+    assert.match(stored, /^[0-9a-f]+:[0-9a-f]+$/)
+    assert.equal(verifyPassword('hunter2', stored), true)
+  })
+
+  test('a wrong password does not verify', () => {
+    const stored = hashPassword('hunter2')
+    assert.equal(verifyPassword('nope', stored), false)
+  })
+
+  test('the same password hashes differently each time (random salt)', () => {
+    assert.notEqual(hashPassword('same'), hashPassword('same'))
+  })
+
+  test('garbage or empty stored values fail safely', () => {
+    assert.equal(verifyPassword('x', ''), false)
+    assert.equal(verifyPassword('x', 'nosalt'), false)
+    assert.equal(verifyPassword('x', 'a:b:c'), false)
   })
 })

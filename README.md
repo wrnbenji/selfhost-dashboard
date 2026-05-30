@@ -39,7 +39,7 @@ Open <http://localhost:3000>. That's it.
 - 📊 Per-service uptime, p95 latency, and an incident log, for the last hour, day, week, or month.
 - 🔔 Get pinged on Discord or any webhook the moment a service goes down — and again when it recovers.
 - ✋ Drag and drop to reorder, a 🌙 dark mode, and an optional 📄 YAML config if you'd rather not use labels.
-- 🔒 Optional single-password lock — set one env var and the dashboard sits behind a login (off by default for trusted LANs).
+- 🔒 Optional single-password lock — turn it on from Settings (or an env var) and the dashboard sits behind a login (off by default for trusted LANs).
 - 📦 One image and one SQLite file. No external database to run.
 
 <details>
@@ -147,9 +147,16 @@ It reloads on save. See [`services.example.yaml`](services.example.yaml).
 
 ### Password protection
 
-Set `AUTH_PASSWORD` and the whole dashboard sits behind a single-password login —
-the API returns `401` until you log in, and the UI shows an unlock screen. Leave it
-unset and there's no gate (the default, for a trusted LAN).
+A single password can lock the whole dashboard — the API returns `401` until you log
+in, and the UI shows an unlock screen. There are two ways to set it; off by default
+(for a trusted LAN).
+
+**From the UI (no restart):** open **Settings → security**, set a password, and the
+lock turns on immediately. Change or remove it from the same place — changing it logs
+out every other session. The password is stored hashed (`scrypt`) in the database.
+
+**From the environment (ops-managed):** set `AUTH_PASSWORD` and it takes precedence;
+the UI field becomes read-only.
 
 ```bash
 docker run -d -p 3000:3000 \
@@ -161,7 +168,7 @@ docker run -d -p 3000:3000 \
 
 No bot, no external IdP — just one password, a signed `HttpOnly` session cookie, and
 a **Log out** entry under Settings. Already running an SSO/reverse proxy (Authelia,
-Authentik, oauth2-proxy)? Leave `AUTH_PASSWORD` unset and let the proxy handle it.
+Authentik, oauth2-proxy)? Leave it unset and let the proxy handle it.
 
 ### Notifications
 
