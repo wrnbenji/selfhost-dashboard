@@ -9,9 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/wrnbenji/selfhost-dashboard?style=social)](https://github.com/wrnbenji/selfhost-dashboard/stargazers)
 
-<!-- Capture a short demo (see docs/HERO.md), drop it in, and uncomment:
-![selfhost-dashboard discovering containers](docs/hero.gif)
--->
+![selfhost-dashboard auto-discovering a Docker container in real time](docs/hero.gif)
 
 [Quick start](#-quick-start) • [Features](#-features) • [Configuration](#️-configuration) • [Roadmap](#-roadmap) • [Contributing](#-contributing)
 
@@ -64,6 +62,10 @@ disappears automatically, with no restart and no config edit. See
 - A coverage indicator that distinguishes "service was down" from "the monitor wasn't running"
 
 </details>
+
+Prefer the UI? Add a service by hand with **+ New** — it's monitored the moment you save:
+
+![Adding a service from the dashboard UI](docs/demo-add.gif)
 
 ---
 
