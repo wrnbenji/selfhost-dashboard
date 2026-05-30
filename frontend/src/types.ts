@@ -93,6 +93,28 @@ export interface Settings {
   retention_days: 1 | 7 | 30
 }
 
+export type NotificationChannel = 'webhook' | 'discord'
+
+/** Masked notification config as returned by the API — secrets never echoed. */
+export interface NotificationConfig {
+  enabled: boolean
+  channel: NotificationChannel
+  notify_on_recovery: boolean
+  failure_threshold: number
+  muted: string[]
+  webhook_url_set: boolean
+}
+
+/** Fields a client may write. Secrets are only sent when (re)set by the user. */
+export interface NotificationPatch {
+  enabled?: boolean
+  channel?: NotificationChannel
+  webhook_url?: string
+  notify_on_recovery?: boolean
+  failure_threshold?: number
+  muted?: string[]
+}
+
 export interface Runtime {
   id: string
   current_status: ServiceStatus

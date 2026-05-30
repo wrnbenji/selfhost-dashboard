@@ -10,10 +10,15 @@ const app = createApp()
 
 startMonitorSession()
 loadYamlConfig()
-watchYamlConfig()
-startHealthChecks(Number(process.env.HEALTH_INTERVAL_MS ?? 30000))
+const yamlWatcher = watchYamlConfig()
+const stopHealthChecks = startHealthChecks(
+  Number(process.env.HEALTH_INTERVAL_MS ?? 30000),
+)
+let discoveryTimer: ReturnType<typeof setInterval> | null = null
 if (dockerAvailable()) {
-  startDiscoveryLoop(Number(process.env.DISCOVERY_INTERVAL_MS ?? 30000))
+  discoveryTimer = startDiscoveryLoop(
+    Number(process.env.DISCOVERY_INTERVAL_MS ?? 30000),
+  )
 } else {
   console.log('[docker] socket not found — discovery disabled')
 }
@@ -24,6 +29,9 @@ const server = serve({ fetch: app.fetch, port }, ({ port }) => {
 })
 
 function shutdown() {
+  stopHealthChecks()
+  if (discoveryTimer) clearInterval(discoveryTimer)
+  yamlWatcher?.close()
   endMonitorSession()
   server.close(() => process.exit(0))
   // failsafe — if close hangs, force exit

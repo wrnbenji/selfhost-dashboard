@@ -53,6 +53,7 @@ export function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>(loadViewMode)
   const [category, setCategory] = useState<string>(loadCategory)
+  const [navOpen, setNavOpen] = useState(false)
 
   useEffect(() => {
     localStorage.setItem('viewMode', viewMode)
@@ -192,11 +193,20 @@ export function App() {
         services={services}
         selected={category}
         onSelect={setCategory}
+        mobileOpen={navOpen}
+        onMobileClose={() => setNavOpen(false)}
       />
 
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="border-b border-border">
           <div className="px-4 sm:px-6 py-3 flex items-center gap-3">
+            <button
+              onClick={() => setNavOpen(true)}
+              aria-label="Open categories menu"
+              className="lg:hidden -ml-1 px-1.5 py-1 text-fg-muted hover:text-fg font-mono text-base leading-none"
+            >
+              ☰
+            </button>
             <h2 className="font-display text-base font-semibold tracking-tight text-fg">
               {sectionTitle}
             </h2>
@@ -205,6 +215,7 @@ export function App() {
               <div className="relative max-w-[16rem] w-full hidden sm:block">
                 <input
                   id="filter-input"
+                  aria-label="Filter services"
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                   placeholder="filter"
@@ -219,6 +230,7 @@ export function App() {
               <SettingsMenu />
               <button
                 onClick={() => setModalOpen(true)}
+                aria-label="Add new service"
                 className="font-mono text-[11px] uppercase tracking-wider px-2.5 py-1.5 bg-fg text-bg hover:opacity-80 ml-1"
               >
                 + new
@@ -242,7 +254,27 @@ export function App() {
           )}
 
           {!error && services === null && (
-            <p className="font-mono text-xs text-fg-subtle px-4 py-6">loading…</p>
+            <div
+              className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]"
+              aria-busy="true"
+              aria-label="Loading services"
+            >
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="border border-border bg-surface p-4 animate-pulse"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-border/60 rounded" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-2/3 bg-border/60 rounded" />
+                      <div className="h-2 w-1/2 bg-border/40 rounded" />
+                    </div>
+                  </div>
+                  <div className="mt-4 h-2 w-full bg-border/40 rounded" />
+                </div>
+              ))}
+            </div>
           )}
 
           {!error && services?.length === 0 && (

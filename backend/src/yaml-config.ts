@@ -98,13 +98,14 @@ export function loadYamlConfig() {
 }
 
 export function watchYamlConfig() {
-  if (!existsSync(YAML_PATH)) return
+  if (!existsSync(YAML_PATH)) return null
   let timer: NodeJS.Timeout | null = null
-  watch(YAML_PATH, () => {
+  const watcher = watch(YAML_PATH, () => {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => {
       console.log('[yaml] reloading')
       loadYamlConfig()
     }, 250)
   })
+  return watcher
 }

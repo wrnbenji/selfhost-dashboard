@@ -3,6 +3,7 @@ import type { Context } from 'hono'
 import { db, type ServiceRow } from '../db.js'
 import { inspectContainer } from '../docker.js'
 import { computeGaps } from '../monitor.js'
+import { forgetService } from '../notify.js'
 import { isValidHttpUrl } from '../validate.js'
 
 export const services = new Hono()
@@ -111,6 +112,7 @@ services.patch('/:id', async (c) => {
 services.delete('/:id', (c) => {
   const id = c.req.param('id')
   deleteServiceCascade(id)
+  forgetService(id)
   return c.body(null, 204)
 })
 

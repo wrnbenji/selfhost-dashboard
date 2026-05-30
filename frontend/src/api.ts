@@ -2,6 +2,8 @@ import type {
   Incident,
   MonitorStatus,
   NewService,
+  NotificationConfig,
+  NotificationPatch,
   OverviewTimelineBucket,
   Runtime,
   Service,
@@ -108,6 +110,30 @@ export const api = {
       body: JSON.stringify(patch),
     })
     if (!r.ok) throw new Error(`PATCH settings ${r.status}`)
+    return r.json()
+  },
+  notifications: async (): Promise<NotificationConfig> => {
+    const r = await fetch('/api/notifications')
+    if (!r.ok) throw new Error(`GET notifications ${r.status}`)
+    return r.json()
+  },
+  setNotifications: async (patch: NotificationPatch): Promise<NotificationConfig> => {
+    const r = await fetch('/api/notifications', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    if (!r.ok) {
+      const msg = await r
+        .json()
+        .then((b) => (b as { error?: string }).error)
+        .catch(() => null)
+      throw new Error(msg ?? `PATCH notifications ${r.status}`)
+    }
+    return r.json()
+  },
+  testNotification: async (): Promise<{ ok: boolean; error?: string }> => {
+    const r = await fetch('/api/notifications/test', { method: 'POST' })
     return r.json()
   },
 }

@@ -37,6 +37,7 @@ Open <http://localhost:3000>. That's it.
 - 🔍 Label a container and its card shows up within 30 seconds.
 - 📡 Health checks run as HTTP probes and get pushed to the browser live over SSE, so you never have to refresh.
 - 📊 Per-service uptime, p95 latency, and an incident log, for the last hour, day, week, or month.
+- 🔔 Get pinged on Discord or any webhook the moment a service goes down — and again when it recovers.
 - ✋ Drag and drop to reorder, a 🌙 dark mode, and an optional 📄 YAML config if you'd rather not use labels.
 - 📦 One image and one SQLite file. No external database to run.
 
@@ -57,6 +58,20 @@ The backend reads the Docker socket (read-only) and watches for containers label
 - Online/offline status from HTTP `HEAD`/`GET` probes (5s timeout)
 - Average and p95 latency, uptime %, and incident count per window (1h / 24h / 7d / 30d)
 - A coverage indicator that tells "the service was down" apart from "the monitor wasn't running"
+
+</details>
+
+<details>
+<summary>🔔 <strong>How alerting works</strong></summary>
+
+<br>
+
+Get notified when a service goes down and again when it recovers — no bot to run, the dashboard just makes an outbound POST.
+
+- **Discord** — paste a channel webhook URL (Channel settings → *Integrations → Webhooks*).
+- **Webhook** — any URL that takes a JSON `POST`; works with ntfy, Home Assistant, n8n, or your own script.
+- **Flap protection** — an alert only fires after a status holds for *N* consecutive checks (default 2), so a single blip won't page you.
+- **Per-service mute** and a **Send test** button live in the UI. Configure it under **Settings → notifications**.
 
 </details>
 
@@ -126,6 +141,21 @@ It reloads on save. See [`services.example.yaml`](services.example.yaml).
 | `DISCOVERY_INTERVAL_MS` | `30000` | Docker label rescan cadence |
 | `CORS_ORIGIN` | `*` | Restrict cross-origin API callers |
 
+### Notifications
+
+Open **Settings → notifications → configure** to get alerted when a service goes
+down (and again when it recovers). No bot to run — the dashboard only makes an
+outbound POST:
+
+- **Discord** — Channel settings → *Integrations → Webhooks → New Webhook*, copy the
+  URL, paste it in.
+- **Webhook** — any URL that accepts a JSON `POST` (ntfy, Home Assistant, n8n, your
+  own script). Payload: `{ service, status, url, timestamp, message }`.
+
+Alerts only fire after a status holds for *N* consecutive checks (default 2), so a
+single blip won't page you. Mute individual services from their detail panel. Send
+a test alert from the same screen to confirm delivery.
+
 ---
 
 ## 🆚 Comparison
@@ -134,6 +164,7 @@ It reloads on save. See [`services.example.yaml`](services.example.yaml).
 |---|:---:|:---:|:---:|:---:|
 | Auto-discovery | ✅ | ❌ | ❌ | ✅ |
 | Real-time health | ✅ | ❌ | ❌ | ✅ |
+| Downtime alerts | ✅ | ❌ | ❌ | ✅ |
 | Single binary image | ✅ | ✅ | ❌ | ❌ |
 | Drag & drop | ✅ | ❌ | ✅ | ✅ |
 | Zero external deps | ✅ | ✅ | ❌ | ❌ |
@@ -165,8 +196,9 @@ npm run test --workspace=backend   # 42 tests
 
 - [x] Auto-discovery, real-time health, uptime history
 - [x] Drag & drop, dark mode, YAML config, responsive layout
+- [x] Notifications (Discord / webhook on downtime & recovery)
+- [ ] More alert channels (Telegram, email)
 - [ ] Authentication (Basic / OAuth2 proxy)
-- [ ] Notifications (Telegram / Discord / email on downtime)
 - [ ] Widgets (weather, RSS, Grafana embeds)
 - [ ] Kubernetes ingress discovery
 

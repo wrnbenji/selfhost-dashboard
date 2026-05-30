@@ -18,6 +18,7 @@ export function ServiceModal({ open, mode, initial, onClose, onSubmit }: Props) 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const firstFieldRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
@@ -33,7 +34,26 @@ export function ServiceModal({ open, mode, initial, onClose, onSubmit }: Props) 
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab') return
+      // Focus trap: keep Tab cycling within the dialog.
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'input:not([disabled]), button:not([disabled]), [href], select, textarea, [tabindex]:not([tabindex="-1"])',
+      )
+      if (!focusable || focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const activeEl = document.activeElement as HTMLElement | null
+      if (e.shiftKey && activeEl === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && activeEl === last) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -74,6 +94,10 @@ export function ServiceModal({ open, mode, initial, onClose, onSubmit }: Props) 
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === 'create' ? 'New service' : 'Edit service'}
         className="w-full max-w-md bg-surface border border-border-strong shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >

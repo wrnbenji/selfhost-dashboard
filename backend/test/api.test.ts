@@ -694,3 +694,49 @@ describe('orphaned checks cleanup', () => {
     assert.equal(c, 0)
   })
 })
+
+describe('notifications API', () => {
+  test('GET returns a masked config and never echoes secrets', async () => {
+    const r = await req('/api/notifications')
+    assert.equal(r.status, 200)
+    const body = (await r.json()) as Record<string, unknown>
+    // masked shape: boolean for the secret, no raw url field
+    assert.equal('webhook_url' in body, false)
+    assert.equal(typeof body.webhook_url_set, 'boolean')
+  })
+
+  test('PATCH rejects an unknown channel with 400', async () => {
+    const r = await patchJSON('/api/notifications', { channel: 'sms' })
+    assert.equal(r.status, 400)
+  })
+
+  test('PATCH rejects an enabled discord channel without a url', async () => {
+    const r = await patchJSON('/api/notifications', {
+      enabled: true,
+      channel: 'discord',
+      webhook_url: '',
+    })
+    assert.equal(r.status, 400)
+  })
+
+  test('PATCH persists a valid config and reports the secret as set', async () => {
+    const r = await patchJSON('/api/notifications', {
+      enabled: true,
+      channel: 'discord',
+      webhook_url: 'https://discord.com/api/webhooks/1/abc',
+    })
+    assert.equal(r.status, 200)
+    const body = (await r.json()) as Record<string, unknown>
+    assert.equal(body.enabled, true)
+    assert.equal(body.webhook_url_set, true)
+  })
+
+  test('PATCH that omits the secret keeps the stored value', async () => {
+    // toggle only `enabled` — the webhook_url from the previous test must survive
+    const r = await patchJSON('/api/notifications', { enabled: false })
+    assert.equal(r.status, 200)
+    const body = (await r.json()) as Record<string, unknown>
+    assert.equal(body.enabled, false)
+    assert.equal(body.webhook_url_set, true)
+  })
+})

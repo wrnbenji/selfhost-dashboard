@@ -7,6 +7,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { events } from './routes/events.js'
 import { monitor } from './routes/monitor.js'
+import { notifications } from './routes/notifications.js'
 import { services } from './routes/services.js'
 import { settings } from './routes/settings.js'
 import { stats } from './routes/stats.js'
@@ -35,6 +36,7 @@ export function createApp(opts: AppOptions = {}): Hono {
   app.route('/api/stats', stats)
   app.route('/api/settings', settings)
   app.route('/api/monitor', monitor)
+  app.route('/api/notifications', notifications)
 
   // Unknown API routes get a JSON 404 — never fall through to the SPA index.html.
   app.all('/api/*', (c) => c.json({ error: 'not found' }, 404))

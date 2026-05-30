@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import type { Settings } from '../types'
+import { NotificationsModal } from './NotificationsModal'
 
 const RETENTION_OPTIONS: Settings['retention_days'][] = [1, 7, 30]
 
@@ -14,6 +15,7 @@ function getInitialTheme(): Theme {
 
 export function SettingsMenu() {
   const [open, setOpen] = useState(false)
+  const [notifyOpen, setNotifyOpen] = useState(false)
   const [settings, setSettings] = useState<Settings | null>(null)
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const ref = useRef<HTMLDivElement>(null)
@@ -97,8 +99,20 @@ export function SettingsMenu() {
               ))}
             </div>
           </Section>
+          <Section title="notifications">
+            <button
+              onClick={() => {
+                setOpen(false)
+                setNotifyOpen(true)
+              }}
+              className="w-full px-2 py-1 font-mono text-[11px] uppercase tracking-wider border border-border text-fg-muted hover:text-fg hover:border-border-strong transition-colors"
+            >
+              configure…
+            </button>
+          </Section>
         </div>
       )}
+      <NotificationsModal open={notifyOpen} onClose={() => setNotifyOpen(false)} />
     </div>
   )
 }
