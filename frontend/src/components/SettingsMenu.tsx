@@ -13,7 +13,12 @@ function getInitialTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-export function SettingsMenu() {
+interface SettingsMenuProps {
+  showLogout?: boolean
+  onLogout?: () => void
+}
+
+export function SettingsMenu({ showLogout, onLogout }: SettingsMenuProps = {}) {
   const [open, setOpen] = useState(false)
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -110,6 +115,19 @@ export function SettingsMenu() {
               configure…
             </button>
           </Section>
+          {showLogout && (
+            <Section title="session">
+              <button
+                onClick={() => {
+                  setOpen(false)
+                  onLogout?.()
+                }}
+                className="w-full px-2 py-1 font-mono text-[11px] uppercase tracking-wider border border-border text-fg-muted hover:text-fg hover:border-border-strong transition-colors"
+              >
+                log out
+              </button>
+            </Section>
+          )}
         </div>
       )}
       <NotificationsModal open={notifyOpen} onClose={() => setNotifyOpen(false)} />

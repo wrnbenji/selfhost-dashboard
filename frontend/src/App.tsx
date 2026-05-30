@@ -13,7 +13,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api } from './api'
+import { api, setUnauthorizedHandler } from './api'
+import { Login } from './components/Login'
 import { ServiceModal } from './components/ServiceModal'
 import { DetailPanel } from './components/DetailPanel'
 import { MonitorPill } from './components/MonitorPill'
@@ -27,6 +28,7 @@ import { useServiceEvents } from './hooks/useServiceEvents'
 import {
   ALL_CATEGORY,
   UNCATEGORIZED,
+  type AuthStatus,
   type NewService,
   type Service,
   type StatsWindow,
@@ -54,6 +56,18 @@ export function App() {
   const [viewMode, setViewMode] = useState<ViewMode>(loadViewMode)
   const [category, setCategory] = useState<string>(loadCategory)
   const [navOpen, setNavOpen] = useState(false)
+  const [auth, setAuth] = useState<AuthStatus | null>(null)
+
+  // Register the 401 handler first, then probe auth status. An expired session
+  // (or no session when a password is set) flips us to the login screen.
+  useEffect(() => {
+    setUnauthorizedHandler(() => setAuth({ required: true, authed: false }))
+    api
+      .authStatus()
+      .then(setAuth)
+      .catch(() => setAuth({ required: false, authed: true }))
+    return () => setUnauthorizedHandler(null)
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('viewMode', viewMode)
@@ -69,7 +83,10 @@ export function App() {
   const load = useCallback(() => {
     api
       .list()
-      .then(setServices)
+      .then((s) => {
+        setServices(s)
+        setError(null) // clear any prior error (e.g. a pre-login 401)
+      })
       .catch((e) => setError(String(e)))
   }, [])
 
@@ -178,6 +195,20 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [modalOpen])
 
+  if (auth === null) {
+    return <div className="min-h-screen" />
+  }
+  if (auth.required && !auth.authed) {
+    return (
+      <Login
+        onSuccess={() => {
+          setAuth({ required: true, authed: true })
+          load()
+        }}
+      />
+    )
+  }
+
   const selectedService = services?.find((s) => s.id === selectedId) ?? null
 
   const sectionTitle =
@@ -227,7 +258,13 @@ export function App() {
               </div>
               <ViewToggle mode={viewMode} onChange={setViewMode} />
               <MonitorPill window={statsWindow} bumpKey={statsBump} />
-              <SettingsMenu />
+              <SettingsMenu
+                showLogout={auth.required}
+                onLogout={async () => {
+                  await api.logout()
+                  setAuth({ required: true, authed: false })
+                }}
+              />
               <button
                 onClick={() => setModalOpen(true)}
                 aria-label="Add new service"

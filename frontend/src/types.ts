@@ -93,6 +93,11 @@ export interface Settings {
   retention_days: 1 | 7 | 30
 }
 
+export interface AuthStatus {
+  required: boolean
+  authed: boolean
+}
+
 export type NotificationChannel = 'webhook' | 'discord'
 
 /** Masked notification config as returned by the API — secrets never echoed. */

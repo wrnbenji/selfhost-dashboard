@@ -1,4 +1,5 @@
 import type {
+  AuthStatus,
   Incident,
   MonitorStatus,
   NewService,
@@ -14,14 +15,26 @@ import type {
   TimelineBucket,
 } from './types'
 
+// Global 401 handling: any data call that comes back unauthorized (e.g. an
+// expired session) notifies the app so it can show the login screen.
+let onUnauthorized: (() => void) | null = null
+export function setUnauthorizedHandler(fn: (() => void) | null): void {
+  onUnauthorized = fn
+}
+async function gfetch(input: RequestInfo, init?: RequestInit): Promise<Response> {
+  const r = await fetch(input, init)
+  if (r.status === 401) onUnauthorized?.()
+  return r
+}
+
 export const api = {
   list: async (): Promise<Service[]> => {
-    const r = await fetch('/api/services?include_disabled=1')
+    const r = await gfetch('/api/services?include_disabled=1')
     if (!r.ok) throw new Error(`GET /api/services ${r.status}`)
     return r.json()
   },
   create: async (s: NewService): Promise<{ id: string }> => {
-    const r = await fetch('/api/services', {
+    const r = await gfetch('/api/services', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(s),
@@ -30,7 +43,7 @@ export const api = {
     return r.json()
   },
   update: async (id: string, patch: Partial<Service>): Promise<void> => {
-    const r = await fetch(`/api/services/${id}`, {
+    const r = await gfetch(`/api/services/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(patch),
@@ -38,11 +51,11 @@ export const api = {
     if (!r.ok) throw new Error(`PATCH /api/services/${id} ${r.status}`)
   },
   remove: async (id: string): Promise<void> => {
-    const r = await fetch(`/api/services/${id}`, { method: 'DELETE' })
+    const r = await gfetch(`/api/services/${id}`, { method: 'DELETE' })
     if (!r.ok) throw new Error(`DELETE /api/services/${id} ${r.status}`)
   },
   reorder: async (order: string[]): Promise<void> => {
-    const r = await fetch('/api/services/reorder', {
+    const r = await gfetch('/api/services/reorder', {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ order }),
@@ -50,7 +63,7 @@ export const api = {
     if (!r.ok) throw new Error(`PATCH reorder ${r.status}`)
   },
   stats: async (window: StatsWindow = '24h'): Promise<Stats> => {
-    const r = await fetch(`/api/stats?window=${window}`)
+    const r = await gfetch(`/api/stats?window=${window}`)
     if (!r.ok) throw new Error(`GET stats ${r.status}`)
     return r.json()
   },
@@ -58,14 +71,14 @@ export const api = {
     window: StatsWindow = '24h',
     buckets = 32,
   ): Promise<{ buckets: OverviewTimelineBucket[] }> => {
-    const r = await fetch(
+    const r = await gfetch(
       `/api/stats/overview/timeline?window=${window}&buckets=${buckets}`,
     )
     if (!r.ok) throw new Error(`GET overview timeline ${r.status}`)
     return r.json()
   },
   serviceStats: async (id: string, window: StatsWindow = '24h'): Promise<ServiceStats> => {
-    const r = await fetch(`/api/stats/service/${id}?window=${window}`)
+    const r = await gfetch(`/api/stats/service/${id}?window=${window}`)
     if (!r.ok) throw new Error(`GET service stats ${r.status}`)
     return r.json()
   },
@@ -74,7 +87,7 @@ export const api = {
     window: StatsWindow = '24h',
     buckets = 48,
   ): Promise<{ buckets: TimelineBucket[] }> => {
-    const r = await fetch(
+    const r = await gfetch(
       `/api/stats/service/${id}/timeline?window=${window}&buckets=${buckets}`,
     )
     if (!r.ok) throw new Error(`GET timeline ${r.status}`)
@@ -84,27 +97,27 @@ export const api = {
     id: string,
     window: StatsWindow = '24h',
   ): Promise<{ incidents: Incident[] }> => {
-    const r = await fetch(`/api/stats/service/${id}/incidents?window=${window}`)
+    const r = await gfetch(`/api/stats/service/${id}/incidents?window=${window}`)
     if (!r.ok) throw new Error(`GET incidents ${r.status}`)
     return r.json()
   },
   monitor: async (window: StatsWindow = '24h'): Promise<MonitorStatus> => {
-    const r = await fetch(`/api/monitor?window=${window}`)
+    const r = await gfetch(`/api/monitor?window=${window}`)
     if (!r.ok) throw new Error(`GET monitor ${r.status}`)
     return r.json()
   },
   settings: async (): Promise<Settings> => {
-    const r = await fetch('/api/settings')
+    const r = await gfetch('/api/settings')
     if (!r.ok) throw new Error(`GET settings ${r.status}`)
     return r.json()
   },
   runtime: async (id: string): Promise<Runtime> => {
-    const r = await fetch(`/api/services/${id}/runtime`)
+    const r = await gfetch(`/api/services/${id}/runtime`)
     if (!r.ok) throw new Error(`GET runtime ${r.status}`)
     return r.json()
   },
   setSettings: async (patch: Partial<Settings>): Promise<Settings> => {
-    const r = await fetch('/api/settings', {
+    const r = await gfetch('/api/settings', {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(patch),
@@ -113,12 +126,12 @@ export const api = {
     return r.json()
   },
   notifications: async (): Promise<NotificationConfig> => {
-    const r = await fetch('/api/notifications')
+    const r = await gfetch('/api/notifications')
     if (!r.ok) throw new Error(`GET notifications ${r.status}`)
     return r.json()
   },
   setNotifications: async (patch: NotificationPatch): Promise<NotificationConfig> => {
-    const r = await fetch('/api/notifications', {
+    const r = await gfetch('/api/notifications', {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(patch),
@@ -133,7 +146,27 @@ export const api = {
     return r.json()
   },
   testNotification: async (): Promise<{ ok: boolean; error?: string }> => {
-    const r = await fetch('/api/notifications/test', { method: 'POST' })
+    const r = await gfetch('/api/notifications/test', { method: 'POST' })
     return r.json()
+  },
+  authStatus: async (): Promise<AuthStatus> => {
+    const r = await fetch('/api/auth/status')
+    if (!r.ok) throw new Error(`GET auth status ${r.status}`)
+    return r.json()
+  },
+  login: async (password: string): Promise<{ ok: boolean }> => {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ password }),
+    })
+    if (!r.ok) {
+      if (r.status === 401) throw new Error('Incorrect password')
+      throw new Error(`POST login ${r.status}`)
+    }
+    return r.json()
+  },
+  logout: async (): Promise<void> => {
+    await fetch('/api/auth/logout', { method: 'POST' })
   },
 }
