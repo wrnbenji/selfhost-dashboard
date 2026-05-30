@@ -19,7 +19,7 @@
 
 > **Status:** v0.1. Made to run on your LAN or behind a reverse proxy. There's no built-in auth yet; that's planned for v0.2.
 
-Tired of bookmarking every self-hosted service and editing a config file every time something changes? selfhost-dashboard reads the labels off your Docker containers and builds the dashboard for you, then keeps an eye on each service's health in real time.
+Tired of bookmarking every self-hosted service and editing a config file every time something moves? selfhost-dashboard reads the labels off your Docker containers and builds the dashboard for you, then watches each service's health in real time.
 
 ```bash
 docker run -d -p 3000:3000 \
@@ -34,21 +34,18 @@ Open <http://localhost:3000>. That's it.
 
 ## ✨ Features
 
-- 🔍 **Zero-config discovery.** Label a container and its card shows up within 30 seconds.
-- 📡 **Real-time health.** HTTP probes pushed live over SSE, no refresh needed.
-- 📊 **Uptime & latency history.** Per-service timeline, incidents, p95 latency.
-- ✋ **Drag & drop** reordering, 🌙 **dark mode**, and optional 📄 **YAML config**.
-- 📦 **Single image**, one SQLite file. No external database, no extra dependencies.
+- 🔍 Label a container and its card shows up within 30 seconds.
+- 📡 Health checks run as HTTP probes and get pushed to the browser live over SSE, so you never have to refresh.
+- 📊 Per-service uptime, p95 latency, and an incident log, for the last hour, day, week, or month.
+- ✋ Drag and drop to reorder, a 🌙 dark mode, and an optional 📄 YAML config if you'd rather not use labels.
+- 📦 One image and one SQLite file. No external database to run.
 
 <details>
 <summary>🔍 <strong>How auto-discovery works</strong></summary>
 
 <br>
 
-The backend reads the Docker socket (read-only) and watches for containers
-labeled `dashboard.enable=true`. Add or remove the label and the card appears or
-disappears automatically, with no restart and no config edit. See
-[Docker label discovery](#docker-label-discovery).
+The backend reads the Docker socket (read-only) and watches for containers labeled `dashboard.enable=true`. Add or remove the label and the card appears or disappears on its own, with no restart and no config edit. See [Docker label discovery](#docker-label-discovery).
 
 </details>
 
@@ -57,13 +54,13 @@ disappears automatically, with no restart and no config edit. See
 
 <br>
 
-- Online/offline status via HTTP `HEAD`/`GET` probes (5s timeout)
-- Average + p95 latency, uptime %, incident count per window (1h / 24h / 7d / 30d)
-- A coverage indicator that distinguishes "service was down" from "the monitor wasn't running"
+- Online/offline status from HTTP `HEAD`/`GET` probes (5s timeout)
+- Average and p95 latency, uptime %, and incident count per window (1h / 24h / 7d / 30d)
+- A coverage indicator that tells "the service was down" apart from "the monitor wasn't running"
 
 </details>
 
-Prefer the UI? Add a service by hand with **+ New** — it's monitored the moment you save:
+Prefer the UI? Add a service by hand with the **+ New** button, and it starts being monitored the moment you save:
 
 ![Adding a service from the dashboard UI](docs/demo-add.gif)
 
@@ -99,7 +96,7 @@ labels:
 
 ### Docker label discovery
 
-Labeled containers appear automatically within 30 seconds; removing the label removes the card. No restart needed.
+Labeled containers show up on their own within 30 seconds, and removing the label removes the card. No restart needed.
 
 ### YAML config (optional)
 
@@ -113,7 +110,7 @@ services:
     url: http://192.168.1.100:3000
 ```
 
-Hot-reloaded on save. See [`services.example.yaml`](services.example.yaml).
+It reloads on save. See [`services.example.yaml`](services.example.yaml).
 
 ---
 
@@ -152,7 +149,7 @@ npm install
 npm run dev    # backend :3001 + frontend :3000 (Vite proxies /api)
 ```
 
-Production bundle (frontend → `backend/public/`, backend → `backend/dist/`):
+Production bundle (frontend builds into `backend/public/`, backend into `backend/dist/`):
 
 ```bash
 npm run build
@@ -177,7 +174,7 @@ npm run test --workspace=backend   # 42 tests
 
 ## 🤝 Contributing
 
-Issues and PRs are welcome, it's still early days. See [Local development](#-local-development), and please run `npm run test --workspace=backend` before opening a PR.
+Issues and PRs are welcome, it's still early days. See [Local development](#-local-development), and please run `npm run test --workspace=backend` before you open a PR.
 
 ---
 
