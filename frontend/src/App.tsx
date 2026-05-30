@@ -13,20 +13,23 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api } from './api'
+import { api, setUnauthorizedHandler } from './api'
+import { Login } from './components/Login'
 import { ServiceModal } from './components/ServiceModal'
 import { DetailPanel } from './components/DetailPanel'
 import { MonitorPill } from './components/MonitorPill'
 import { ServiceCard } from './components/ServiceCard'
 import { ServiceTile } from './components/ServiceTile'
-import { SettingsMenu } from './components/SettingsMenu'
+import { SettingsPanel } from './components/SettingsPanel'
 import { Sidebar } from './components/Sidebar'
 import { StatCards } from './components/StatCards'
 import { ViewToggle } from './components/ViewToggle'
 import { useServiceEvents } from './hooks/useServiceEvents'
+import { useTheme } from './hooks/useTheme'
 import {
   ALL_CATEGORY,
   UNCATEGORIZED,
+  type AuthStatus,
   type NewService,
   type Service,
   type StatsWindow,
@@ -54,6 +57,26 @@ export function App() {
   const [viewMode, setViewMode] = useState<ViewMode>(loadViewMode)
   const [category, setCategory] = useState<string>(loadCategory)
   const [navOpen, setNavOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [auth, setAuth] = useState<AuthStatus | null>(null)
+  const { theme, setTheme } = useTheme()
+
+  // Register the 401 handler first, then probe auth status. An expired session
+  // (or no session when a password is set) flips us to the login screen.
+  useEffect(() => {
+    setUnauthorizedHandler(() =>
+      setAuth((prev) => ({
+        required: true,
+        authed: false,
+        env_managed: prev?.env_managed ?? false,
+      })),
+    )
+    api
+      .authStatus()
+      .then(setAuth)
+      .catch(() => setAuth({ required: false, authed: true, env_managed: false }))
+    return () => setUnauthorizedHandler(null)
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('viewMode', viewMode)
@@ -69,7 +92,10 @@ export function App() {
   const load = useCallback(() => {
     api
       .list()
-      .then(setServices)
+      .then((s) => {
+        setServices(s)
+        setError(null) // clear any prior error (e.g. a pre-login 401)
+      })
       .catch((e) => setError(String(e)))
   }, [])
 
@@ -178,6 +204,24 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [modalOpen])
 
+  if (auth === null) {
+    return <div className="min-h-screen" />
+  }
+  if (auth.required && !auth.authed) {
+    return (
+      <Login
+        onSuccess={() => {
+          setAuth((prev) => ({
+            required: true,
+            authed: true,
+            env_managed: prev?.env_managed ?? false,
+          }))
+          load()
+        }}
+      />
+    )
+  }
+
   const selectedService = services?.find((s) => s.id === selectedId) ?? null
 
   const sectionTitle =
@@ -227,7 +271,17 @@ export function App() {
               </div>
               <ViewToggle mode={viewMode} onChange={setViewMode} />
               <MonitorPill window={statsWindow} bumpKey={statsBump} />
-              <SettingsMenu />
+              <button
+                onClick={() => setSettingsOpen(true)}
+                aria-label="Settings"
+                className="p-1.5 text-fg-muted hover:text-fg transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <circle cx="3" cy="8" r="1.4" />
+                  <circle cx="8" cy="8" r="1.4" />
+                  <circle cx="13" cy="8" r="1.4" />
+                </svg>
+              </button>
               <button
                 onClick={() => setModalOpen(true)}
                 aria-label="Add new service"
@@ -387,6 +441,20 @@ export function App() {
         onClose={() => setSelectedId(null)}
         onEdit={(id) => setEditingId(id)}
         onToggleEnabled={handleToggleEnabled}
+      />
+
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        theme={theme}
+        setTheme={setTheme}
+        auth={auth}
+        onAuthChange={setAuth}
+        onLogout={async () => {
+          await api.logout()
+          setAuth({ ...auth, authed: false })
+          setSettingsOpen(false)
+        }}
       />
     </div>
   )

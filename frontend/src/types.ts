@@ -93,6 +93,13 @@ export interface Settings {
   retention_days: 1 | 7 | 30
 }
 
+export interface AuthStatus {
+  required: boolean
+  authed: boolean
+  /** True when the password is pinned via the AUTH_PASSWORD env var (UI read-only). */
+  env_managed: boolean
+}
+
 export type NotificationChannel = 'webhook' | 'discord'
 
 /** Masked notification config as returned by the API — secrets never echoed. */

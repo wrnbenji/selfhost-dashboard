@@ -39,6 +39,7 @@ Open <http://localhost:3000>. That's it.
 - 📊 Per-service uptime, p95 latency, and an incident log, for the last hour, day, week, or month.
 - 🔔 Get pinged on Discord or any webhook the moment a service goes down — and again when it recovers.
 - ✋ Drag and drop to reorder, a 🌙 dark mode, and an optional 📄 YAML config if you'd rather not use labels.
+- 🔒 Optional single-password lock — turn it on from Settings (or an env var) and the dashboard sits behind a login (off by default for trusted LANs).
 - 📦 One image and one SQLite file. No external database to run.
 
 <details>
@@ -140,6 +141,34 @@ It reloads on save. See [`services.example.yaml`](services.example.yaml).
 | `HEALTH_INTERVAL_MS` | `30000` | Health check cadence |
 | `DISCOVERY_INTERVAL_MS` | `30000` | Docker label rescan cadence |
 | `CORS_ORIGIN` | `*` | Restrict cross-origin API callers |
+| `AUTH_PASSWORD` | _(unset)_ | Set to require a password (auth off when unset) |
+| `AUTH_SECRET` | _(auto)_ | Session signing secret (auto-generated + persisted if unset) |
+| `AUTH_COOKIE_SECURE` | `0` | Set to `1` to mark the session cookie `Secure` (HTTPS) |
+
+### Password protection
+
+A single password can lock the whole dashboard — the API returns `401` until you log
+in, and the UI shows an unlock screen. There are two ways to set it; off by default
+(for a trusted LAN).
+
+**From the UI (no restart):** open **Settings → security**, set a password, and the
+lock turns on immediately. Change or remove it from the same place — changing it logs
+out every other session. The password is stored hashed (`scrypt`) in the database.
+
+**From the environment (ops-managed):** set `AUTH_PASSWORD` and it takes precedence;
+the UI field becomes read-only.
+
+```bash
+docker run -d -p 3000:3000 \
+  -e AUTH_PASSWORD='choose-a-strong-one' \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v ./data:/data \
+  ghcr.io/wrnbenji/selfhost-dashboard
+```
+
+No bot, no external IdP — just one password, a signed `HttpOnly` session cookie, and
+a **Log out** entry under Settings. Already running an SSO/reverse proxy (Authelia,
+Authentik, oauth2-proxy)? Leave it unset and let the proxy handle it.
 
 ### Notifications
 
@@ -197,8 +226,8 @@ npm run test --workspace=backend   # 42 tests
 - [x] Auto-discovery, real-time health, uptime history
 - [x] Drag & drop, dark mode, YAML config, responsive layout
 - [x] Notifications (Discord / webhook on downtime & recovery)
+- [x] Optional password protection (single-password login)
 - [ ] More alert channels (Telegram, email)
-- [ ] Authentication (Basic / OAuth2 proxy)
 - [ ] Widgets (weather, RSS, Grafana embeds)
 - [ ] Kubernetes ingress discovery
 

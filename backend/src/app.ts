@@ -5,6 +5,8 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import { existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { authMiddleware } from './auth.js'
+import { auth } from './routes/auth.js'
 import { events } from './routes/events.js'
 import { monitor } from './routes/monitor.js'
 import { notifications } from './routes/notifications.js'
@@ -30,7 +32,12 @@ export function createApp(opts: AppOptions = {}): Hono {
     return c.json({ error: 'internal server error' }, 500)
   })
 
+  // Gate the API when AUTH_PASSWORD is set (no-op otherwise). Must run before
+  // the routes; it lets /api/health and /api/auth/* through itself.
+  app.use('/api/*', authMiddleware())
+
   app.get('/api/health', (c) => c.json({ ok: true, ts: Date.now() }))
+  app.route('/api/auth', auth)
   app.route('/api/services', services)
   app.route('/api/events', events)
   app.route('/api/stats', stats)
