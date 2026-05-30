@@ -16,6 +16,10 @@ data/
 .env
 .env.local
 
+# local service config (template lives in services.example.yaml)
+/services.yaml
+/backend/services.yaml
+
 # internal planning doc — not for the public repo
 ROADMAP.md
 
