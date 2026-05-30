@@ -379,9 +379,10 @@ describe('monitor sessions + gaps', () => {
     assert.equal(Math.round(body.coverage_pct), 0)
   })
 
-  test('one clean session + one gap before it', async () => {
+  test('leading pre-monitor gap is excluded; only the trailing gap counts', async () => {
     const now = Date.now()
-    // session ran from -45m to -15m, then a 15m gap till now
+    // the only session ran -45m..-15m. Before -45m the monitor never existed,
+    // so that period is NOT a gap. After -15m it stopped → real 15m trailing gap.
     seedSession(now - 45 * 60_000, now - 15 * 60_000)
     const r = await req('/api/monitor?window=1h')
     const body = (await r.json()) as {
@@ -391,12 +392,40 @@ describe('monitor sessions + gaps', () => {
     }
     assert.equal(body.sessions.length, 1)
     assert.equal(body.sessions[0].crashed, false)
-    // gaps: leading [0..-45m] (15m) + trailing [-15m..now] (15m)
+    // effective window = first session start (-45m) .. now = 45m; 15m trailing gap
     const totalGap = body.gaps.reduce((a, g) => a + g.duration_ms, 0)
-    // ~30 min of gap in a 60 min window → ~50%
-    assert.ok(Math.abs(body.coverage_pct - 50) < 5)
-    assert.ok(totalGap > 25 * 60_000)
-    assert.ok(totalGap < 35 * 60_000)
+    // 30m covered of 45m effective → ~66.7%
+    assert.ok(
+      Math.abs(body.coverage_pct - 66.7) < 5,
+      `expected ~66.7% coverage, got ${body.coverage_pct}`,
+    )
+    assert.ok(totalGap > 12 * 60_000, `trailing gap too small: ${totalGap}`)
+    assert.ok(totalGap < 18 * 60_000, `unexpected leading gap counted: ${totalGap}`)
+  })
+
+  test('coverage ignores time before the monitor first existed (fresh install)', async () => {
+    const now = Date.now()
+    // brand-new install: monitor started 2 min ago and is still running; 24h window
+    seedSession(now - 2 * 60_000, null, now)
+    const r = await req('/api/stats?window=24h')
+    const body = (await r.json()) as { coverage_pct: number }
+    assert.ok(
+      body.coverage_pct > 95,
+      `fresh install should report ~100% coverage, got ${body.coverage_pct}`,
+    )
+  })
+
+  test('a real monitoring gap after the monitor existed still lowers coverage', async () => {
+    const now = Date.now()
+    seedSession(now - 60 * 60_000, now - 40 * 60_000) // -60m..-40m clean stop
+    seedSession(now - 20 * 60_000, null, now) //          -20m..now running
+    const r = await req('/api/stats?window=1h')
+    const body = (await r.json()) as { coverage_pct: number }
+    // 40m covered of 60m → ~66.7%, clearly below 100 (the 20m gap still counts)
+    assert.ok(
+      body.coverage_pct > 55 && body.coverage_pct < 80,
+      `expected ~66.7% coverage, got ${body.coverage_pct}`,
+    )
   })
 
   test('session with ended_at=null and old last_seen treated as crashed', async () => {

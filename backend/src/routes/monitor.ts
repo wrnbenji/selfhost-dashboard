@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import {
   computeGaps,
-  coverageMs,
+  coverage,
   getCurrentSessionId,
   listSessions,
 } from '../monitor.js'
@@ -25,9 +25,11 @@ monitor.get('/', (c) => {
   const now = Date.now()
   const since = now - ms
 
+  const cov = coverage(since, now)
   const sessions = listSessions(since)
-  const gaps = computeGaps(since, now)
-  const coverage = coverageMs(since, now)
+  // gaps from the effective start so a brand-new install doesn't show a giant
+  // "gap" for the time before the monitor first existed (consistent with coverage)
+  const gaps = computeGaps(cov.effective_start, now)
 
   const currentId = getCurrentSessionId()
   const current = sessions.find((s) => s.id === currentId) ?? null
@@ -51,8 +53,8 @@ monitor.get('/', (c) => {
       crashed: s.id !== currentId && s.ended_at === null,
     })),
     gaps,
-    coverage_pct: (coverage / ms) * 100,
-    coverage_ms: coverage,
+    coverage_pct: cov.pct,
+    coverage_ms: cov.ms,
     gap_count: gaps.length,
     total_gap_ms: gaps.reduce((a, g) => a + g.duration_ms, 0),
   })

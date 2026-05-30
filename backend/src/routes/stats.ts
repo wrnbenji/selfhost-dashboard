@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { db } from '../db.js'
-import { computeGaps, coverageMs, inGap } from '../monitor.js'
+import { computeGaps, coverage, inGap } from '../monitor.js'
 
 export const stats = new Hono()
 
@@ -95,12 +95,12 @@ stats.get('/', (c) => {
   const w = c.req.query('window')
   const now = Date.now()
   const since = now - windowMs(w)
-  const cov = coverageMs(since, now)
+  const cov = coverage(since, now)
   return c.json({
     window: w ?? '24h',
     ...aggregate(null, since),
-    coverage_pct: (cov / windowMs(w)) * 100,
-    coverage_ms: cov,
+    coverage_pct: cov.pct,
+    coverage_ms: cov.ms,
   })
 })
 

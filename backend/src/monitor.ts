@@ -134,6 +134,33 @@ export function coverageMs(windowStart: number, windowEnd: number): number {
   return Math.max(0, totalWindow - gapMs)
 }
 
+/** earliest monitor session start ever recorded, or null if none exist */
+export function firstSessionStart(): number | null {
+  const row = db
+    .prepare('SELECT MIN(started_at) AS first FROM monitor_sessions')
+    .get() as { first: number | null }
+  return row.first
+}
+
+/**
+ * Coverage over [windowStart, windowEnd] that does not penalise time before the
+ * monitor first existed. The effective window starts at the later of
+ * `windowStart` and the first-ever session start, so a brand-new install reports
+ * ~100% (no gaps since it started) instead of ~0% (most of the window predates
+ * the dashboard). Real gaps that occur after the monitor's birth still count.
+ */
+export function coverage(
+  windowStart: number,
+  windowEnd: number,
+): { pct: number; ms: number; effective_start: number } {
+  const first = firstSessionStart()
+  const effStart = first === null ? windowStart : Math.max(windowStart, first)
+  const denom = windowEnd - effStart
+  const ms = coverageMs(effStart, windowEnd)
+  const pct = denom <= 0 ? 100 : (ms / denom) * 100
+  return { pct, ms, effective_start: effStart }
+}
+
 /** does this time range fall (mostly) inside a known gap? */
 export function inGap(
   start: number,
