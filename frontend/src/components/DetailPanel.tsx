@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type {
   Incident,
+  NotificationConfig,
   Service,
   ServiceStats,
   StatsWindow,
@@ -59,6 +60,34 @@ export function DetailPanel({
   const [stats, setStats] = useState<ServiceStats | null>(null)
   const [timeline, setTimeline] = useState<TimelineBucket[] | null>(null)
   const [incidents, setIncidents] = useState<Incident[] | null>(null)
+  const [notifyCfg, setNotifyCfg] = useState<NotificationConfig | null>(null)
+
+  useEffect(() => {
+    if (!service) return
+    let cancelled = false
+    api
+      .notifications()
+      .then((c) => !cancelled && setNotifyCfg(c))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [service])
+
+  const muted = service ? (notifyCfg?.muted.includes(service.id) ?? false) : false
+  const toggleMute = async () => {
+    if (!service || !notifyCfg) return
+    const next = muted
+      ? notifyCfg.muted.filter((m) => m !== service.id)
+      : [...notifyCfg.muted, service.id]
+    setNotifyCfg({ ...notifyCfg, muted: next }) // optimistic
+    try {
+      const saved = await api.setNotifications({ muted: next })
+      setNotifyCfg(saved)
+    } catch {
+      api.notifications().then(setNotifyCfg).catch(() => {})
+    }
+  }
 
   useEffect(() => {
     if (!service) return
@@ -154,6 +183,23 @@ export function DetailPanel({
               >
                 {service.enabled ? 'disable' : 'enable'}
               </button>
+              {notifyCfg?.enabled && (
+                <button
+                  onClick={toggleMute}
+                  title={
+                    muted
+                      ? 'notifications muted for this service'
+                      : 'mute notifications for this service'
+                  }
+                  className={`font-mono text-[10px] uppercase tracking-wider px-2 py-1 border transition-colors ${
+                    muted
+                      ? 'border-border bg-surface-hover text-fg-subtle hover:text-fg'
+                      : 'border-border hover:bg-surface-hover hover:border-border-strong text-fg-muted hover:text-fg'
+                  }`}
+                >
+                  {muted ? 'muted' : 'mute'}
+                </button>
+              )}
               {!service.enabled && (
                 <span className="font-mono text-[10px] uppercase tracking-wider text-fg-subtle">
                   paused

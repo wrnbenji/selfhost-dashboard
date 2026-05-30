@@ -1,4 +1,5 @@
 import { db, getSetting, type ServiceRow } from './db.js'
+import { onCheck } from './notify.js'
 import { publish } from './sse.js'
 
 const TIMEOUT_MS = 5000
@@ -34,8 +35,8 @@ async function probe(url: string): Promise<{ status: 'online' | 'offline'; laten
 
 async function checkAll() {
   const rows = db
-    .prepare('SELECT id, url FROM services WHERE enabled = 1')
-    .all() as Pick<ServiceRow, 'id' | 'url'>[]
+    .prepare('SELECT id, name, url FROM services WHERE enabled = 1')
+    .all() as Pick<ServiceRow, 'id' | 'name' | 'url'>[]
 
   const updateService = db.prepare(
     'UPDATE services SET status = ?, last_check = ?, last_latency_ms = ? WHERE id = ?',
@@ -53,6 +54,7 @@ async function checkAll() {
       updateService.run(status, ts, lat, row.id)
       insertCheck.run(row.id, ts, status, lat)
       publish('status', { id: row.id, status, last_check: ts, last_latency_ms: lat })
+      onCheck(row.id, row.name, row.url, status)
     }),
   )
 }
