@@ -37,7 +37,7 @@ Open <http://localhost:3000>. That's it.
 - 🔍 Label a container and its card shows up within 30 seconds.
 - 📡 Health checks run as HTTP probes and get pushed to the browser live over SSE, so you never have to refresh.
 - 📊 Per-service uptime, p95 latency, and an incident log, for the last hour, day, week, or month.
-- 📈 Live CPU and memory for each auto-discovered container — on the cards and in the detail panel.
+- 📈 Live CPU and memory for each auto-discovered container — on the cards, with a 30-minute trend sparkline in the detail panel.
 - 🔔 Get pinged on Discord or any webhook the moment a service goes down — and again when it recovers.
 - ✋ Drag and drop to reorder, a 🌙 dark mode, and an optional 📄 YAML config if you'd rather not use labels.
 - 🔒 Optional single-password lock — turn it on from Settings (or an env var) and the dashboard sits behind a login (off by default for trusted LANs).

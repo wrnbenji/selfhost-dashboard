@@ -4,7 +4,7 @@ import { db, type ServiceRow } from '../db.js'
 import { containerStats, inspectContainer } from '../docker.js'
 import { computeGaps } from '../monitor.js'
 import { forgetService } from '../notify.js'
-import { forgetCardStats, getAllCardStats } from '../stats-store.js'
+import { forgetCardStats, getAllCardStats, getStatsHistory } from '../stats-store.js'
 import { isValidHttpUrl } from '../validate.js'
 
 export const services = new Hono()
@@ -122,6 +122,12 @@ services.delete('/:id', (c) => {
 // Live updates afterwards arrive over SSE ('stats' events).
 services.get('/stats', (c) => {
   return c.json(getAllCardStats())
+})
+
+services.get('/:id/stats/history', (c) => {
+  const id = c.req.param('id')
+  if (!id.startsWith('docker:')) return c.json({ error: 'no container' }, 404)
+  return c.json(getStatsHistory(id))
 })
 
 services.get('/:id/stats', async (c) => {

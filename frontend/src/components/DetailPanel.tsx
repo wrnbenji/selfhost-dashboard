@@ -6,9 +6,11 @@ import type {
   NotificationConfig,
   Service,
   ServiceStats,
+  StatsHistory,
   StatsWindow,
   TimelineBucket,
 } from '../types'
+import { Sparkline } from './Sparkline'
 import { StatusIndicator } from './StatusBadge'
 import { Timeline } from './Timeline'
 
@@ -70,6 +72,7 @@ export function DetailPanel({
   const [incidents, setIncidents] = useState<Incident[] | null>(null)
   const [notifyCfg, setNotifyCfg] = useState<NotificationConfig | null>(null)
   const [containerStats, setContainerStats] = useState<ContainerStats | null>(null)
+  const [statsHistory, setStatsHistory] = useState<StatsHistory | null>(null)
 
   useEffect(() => {
     if (!service) return
@@ -83,10 +86,12 @@ export function DetailPanel({
     }
   }, [service])
 
-  // Live CPU/RAM, only for Docker-discovered services. Refreshes with bumpKey.
+  // Live CPU/RAM + short history, only for Docker-discovered services. Refreshes
+  // with bumpKey.
   useEffect(() => {
     if (!service || !service.id.startsWith('docker:')) {
       setContainerStats(null)
+      setStatsHistory(null)
       return
     }
     let cancelled = false
@@ -94,10 +99,17 @@ export function DetailPanel({
       .containerStats(service.id)
       .then((s) => !cancelled && setContainerStats(s))
       .catch(() => !cancelled && setContainerStats(null))
+    api
+      .statsHistory(service.id)
+      .then((h) => !cancelled && setStatsHistory(h))
+      .catch(() => !cancelled && setStatsHistory(null))
     return () => {
       cancelled = true
     }
-  }, [service, bumpKey])
+    // Depend on the id (not the whole service object): live status/stats SSE updates
+    // replace the service object every tick, and the one-shot /stats call takes ~1-2s
+    // (Docker sampling) — keying on the object would cancel each fetch before it lands.
+  }, [service?.id, bumpKey])
 
   const muted = service ? (notifyCfg?.muted.includes(service.id) ?? false) : false
   const toggleMute = async () => {
@@ -271,6 +283,12 @@ export function DetailPanel({
                   pct={containerStats.mem_pct}
                   value={`${fmtBytes(containerStats.mem_used_bytes)} / ${fmtBytes(containerStats.mem_limit_bytes)}`}
                 />
+                {statsHistory && statsHistory.cpu.length > 1 && (
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <Trend label="cpu" values={statsHistory.cpu} />
+                    <Trend label="memory" values={statsHistory.mem} autoScale color="var(--fg-muted)" />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -318,6 +336,27 @@ export function DetailPanel({
           </div>
         </div>
       </aside>
+    </div>
+  )
+}
+
+function Trend({
+  label,
+  values,
+  autoScale,
+  color,
+}: {
+  label: string
+  values: number[]
+  autoScale?: boolean
+  color?: string
+}) {
+  return (
+    <div>
+      <div className="font-mono text-[9px] uppercase tracking-wider text-fg-subtle mb-1">
+        {label} · 30m
+      </div>
+      <Sparkline values={values} height={24} autoScale={autoScale} color={color} />
     </div>
   )
 }

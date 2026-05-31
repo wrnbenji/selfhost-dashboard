@@ -72,7 +72,7 @@ export function Sidebar({
       <h1 className="font-display text-sm font-semibold tracking-tight text-fg">
         selfhost
       </h1>
-      <span className="font-mono text-[10px] text-fg-subtle">v0.6</span>
+      <span className="font-mono text-[10px] text-fg-subtle">v0.7</span>
     </div>
   )
 

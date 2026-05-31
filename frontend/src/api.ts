@@ -13,6 +13,7 @@ import type {
   ServiceStats,
   Settings,
   Stats,
+  StatsHistory,
   StatsWindow,
   TimelineBucket,
 } from './types'
@@ -127,6 +128,12 @@ export const api = {
   allContainerStats: async (): Promise<Record<string, CardStats>> => {
     const r = await gfetch('/api/services/stats')
     if (!r.ok) throw new Error(`GET services stats ${r.status}`)
+    return r.json()
+  },
+  statsHistory: async (id: string): Promise<StatsHistory | null> => {
+    const r = await gfetch(`/api/services/${id}/stats/history`)
+    if (r.status === 404) return null
+    if (!r.ok) throw new Error(`GET stats history ${r.status}`)
     return r.json()
   },
   setSettings: async (patch: Partial<Settings>): Promise<Settings> => {

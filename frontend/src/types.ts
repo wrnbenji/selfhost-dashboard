@@ -106,6 +106,12 @@ export interface CardStats {
   mem_used_bytes: number
 }
 
+/** Short rolling history for the detail-panel sparklines. */
+export interface StatsHistory {
+  cpu: number[]
+  mem: number[]
+}
+
 export interface AuthStatus {
   required: boolean
   authed: boolean
