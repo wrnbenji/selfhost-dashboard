@@ -1,5 +1,6 @@
 import type {
   AuthStatus,
+  CardStats,
   ContainerStats,
   Incident,
   MonitorStatus,
@@ -121,6 +122,11 @@ export const api = {
     const r = await gfetch(`/api/services/${id}/stats`)
     if (r.status === 404) return null // not a container / stats unavailable
     if (!r.ok) throw new Error(`GET container stats ${r.status}`)
+    return r.json()
+  },
+  allContainerStats: async (): Promise<Record<string, CardStats>> => {
+    const r = await gfetch('/api/services/stats')
+    if (!r.ok) throw new Error(`GET services stats ${r.status}`)
     return r.json()
   },
   setSettings: async (patch: Partial<Settings>): Promise<Settings> => {

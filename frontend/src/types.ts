@@ -100,6 +100,12 @@ export interface ContainerStats {
   mem_pct: number
 }
 
+/** Compact resource snapshot shown on the cards (keyed by service id). */
+export interface CardStats {
+  cpu_pct: number
+  mem_used_bytes: number
+}
+
 export interface AuthStatus {
   required: boolean
   authed: boolean

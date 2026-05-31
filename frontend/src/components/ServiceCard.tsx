@@ -1,11 +1,13 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { Service, StatsWindow } from '../types'
+import type { CardStats, Service, StatsWindow } from '../types'
+import { fmtBytesShort } from './format'
 import { RuntimeButton } from './RuntimeButton'
 import { StatusIndicator } from './StatusBadge'
 
 interface Props {
   service: Service
+  stats?: CardStats
   // kept for API compatibility with App.tsx; not used in simplified row
   statsWindow?: StatsWindow
   statsBump?: number
@@ -20,7 +22,7 @@ function fmtLatency(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`
 }
 
-export function ServiceCard({ service, onDelete, onSelect, selected }: Props) {
+export function ServiceCard({ service, stats, onDelete, onSelect, selected }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: service.id })
 
@@ -89,6 +91,11 @@ export function ServiceCard({ service, onDelete, onSelect, selected }: Props) {
 
       {/* right: single metric + hover actions */}
       <div className="flex items-center gap-3">
+        {stats && (
+          <span className="hidden md:inline font-mono text-[11px] text-fg-subtle tabular">
+            cpu {stats.cpu_pct}% · {fmtBytesShort(stats.mem_used_bytes)}
+          </span>
+        )}
         <span className="hidden sm:inline font-mono text-xs text-fg-muted tabular">
           {fmtLatency(service.last_latency_ms)}
         </span>

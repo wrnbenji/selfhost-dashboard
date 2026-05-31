@@ -1,6 +1,10 @@
 import { db, getSetting, type ServiceRow } from './db.js'
+import { containerStats } from './docker.js'
 import { onCheck } from './notify.js'
+import { setCardStats } from './stats-store.js'
 import { publish } from './sse.js'
+
+const DOCKER_PREFIX = 'docker:'
 
 const TIMEOUT_MS = 5000
 
@@ -55,6 +59,20 @@ async function checkAll() {
       insertCheck.run(row.id, ts, status, lat)
       publish('status', { id: row.id, status, last_check: ts, last_latency_ms: lat })
       onCheck(row.id, row.name, row.url, status)
+
+      // Live CPU/RAM for Docker-backed services — piggybacks this loop (no extra
+      // timer), runs in parallel with the other probes, and never blocks them.
+      if (row.id.startsWith(DOCKER_PREFIX)) {
+        const stats = await containerStats(row.id.slice(DOCKER_PREFIX.length))
+        if (stats) {
+          setCardStats(row.id, stats)
+          publish('stats', {
+            id: row.id,
+            cpu_pct: stats.cpu_pct,
+            mem_used_bytes: stats.mem_used_bytes,
+          })
+        }
+      }
     }),
   )
 }

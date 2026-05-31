@@ -4,6 +4,7 @@ import { db, type ServiceRow } from '../db.js'
 import { containerStats, inspectContainer } from '../docker.js'
 import { computeGaps } from '../monitor.js'
 import { forgetService } from '../notify.js'
+import { forgetCardStats, getAllCardStats } from '../stats-store.js'
 import { isValidHttpUrl } from '../validate.js'
 
 export const services = new Hono()
@@ -113,7 +114,14 @@ services.delete('/:id', (c) => {
   const id = c.req.param('id')
   deleteServiceCascade(id)
   forgetService(id)
+  forgetCardStats(id)
   return c.body(null, 204)
+})
+
+// Latest CPU/RAM for all Docker-backed services, for the cards' initial paint.
+// Live updates afterwards arrive over SSE ('stats' events).
+services.get('/stats', (c) => {
+  return c.json(getAllCardStats())
 })
 
 services.get('/:id/stats', async (c) => {
