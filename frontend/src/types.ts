@@ -93,6 +93,13 @@ export interface Settings {
   retention_days: 1 | 7 | 30
 }
 
+export interface ContainerStats {
+  cpu_pct: number
+  mem_used_bytes: number
+  mem_limit_bytes: number
+  mem_pct: number
+}
+
 export interface AuthStatus {
   required: boolean
   authed: boolean

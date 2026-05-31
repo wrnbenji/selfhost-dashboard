@@ -1,5 +1,6 @@
 import type {
   AuthStatus,
+  ContainerStats,
   Incident,
   MonitorStatus,
   NewService,
@@ -114,6 +115,12 @@ export const api = {
   runtime: async (id: string): Promise<Runtime> => {
     const r = await gfetch(`/api/services/${id}/runtime`)
     if (!r.ok) throw new Error(`GET runtime ${r.status}`)
+    return r.json()
+  },
+  containerStats: async (id: string): Promise<ContainerStats | null> => {
+    const r = await gfetch(`/api/services/${id}/stats`)
+    if (r.status === 404) return null // not a container / stats unavailable
+    if (!r.ok) throw new Error(`GET container stats ${r.status}`)
     return r.json()
   },
   setSettings: async (patch: Partial<Settings>): Promise<Settings> => {

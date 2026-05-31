@@ -37,6 +37,7 @@ Open <http://localhost:3000>. That's it.
 - 🔍 Label a container and its card shows up within 30 seconds.
 - 📡 Health checks run as HTTP probes and get pushed to the browser live over SSE, so you never have to refresh.
 - 📊 Per-service uptime, p95 latency, and an incident log, for the last hour, day, week, or month.
+- 📈 Live CPU and memory for each auto-discovered container, shown in its detail panel.
 - 🔔 Get pinged on Discord or any webhook the moment a service goes down — and again when it recovers.
 - ✋ Drag and drop to reorder, a 🌙 dark mode, and an optional 📄 YAML config if you'd rather not use labels.
 - 🔒 Optional single-password lock — turn it on from Settings (or an env var) and the dashboard sits behind a login (off by default for trusted LANs).
@@ -58,6 +59,7 @@ The backend reads the Docker socket (read-only) and watches for containers label
 
 - Online/offline status from HTTP `HEAD`/`GET` probes (5s timeout)
 - Average and p95 latency, uptime %, and incident count per window (1h / 24h / 7d / 30d)
+- Live CPU and memory usage for Docker-discovered services, read straight from the Docker socket
 - A coverage indicator that tells "the service was down" apart from "the monitor wasn't running"
 
 </details>

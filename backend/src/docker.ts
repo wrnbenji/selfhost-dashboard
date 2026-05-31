@@ -75,6 +75,71 @@ export async function inspectContainer(
   }
 }
 
+interface RawStats {
+  cpu_stats?: {
+    cpu_usage?: { total_usage?: number; percpu_usage?: number[] }
+    system_cpu_usage?: number
+    online_cpus?: number
+  }
+  precpu_stats?: {
+    cpu_usage?: { total_usage?: number }
+    system_cpu_usage?: number
+  }
+  memory_stats?: {
+    usage?: number
+    limit?: number
+    stats?: { inactive_file?: number; total_inactive_file?: number; cache?: number }
+  }
+}
+
+export interface ContainerStats {
+  cpu_pct: number
+  mem_used_bytes: number
+  mem_limit_bytes: number
+  mem_pct: number
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10
+
+/**
+ * Pure: turn a Docker `/stats?stream=false` sample into CPU% and memory usage.
+ * Mirrors the docker CLI math (CPU delta over system delta × cores; memory minus
+ * the inactive-file cache). Returns null when the sample has no usable data — e.g.
+ * a stopped container.
+ */
+export function computeStats(raw: RawStats): ContainerStats | null {
+  const cpuTotal = raw.cpu_stats?.cpu_usage?.total_usage
+  const usage = raw.memory_stats?.usage
+  if (cpuTotal === undefined || usage === undefined) return null
+
+  const cpuDelta = cpuTotal - (raw.precpu_stats?.cpu_usage?.total_usage ?? 0)
+  const systemDelta =
+    (raw.cpu_stats?.system_cpu_usage ?? 0) - (raw.precpu_stats?.system_cpu_usage ?? 0)
+  const cores =
+    raw.cpu_stats?.online_cpus ?? raw.cpu_stats?.cpu_usage?.percpu_usage?.length ?? 1
+  const cpu_pct =
+    systemDelta > 0 && cpuDelta > 0 ? round1((cpuDelta / systemDelta) * cores * 100) : 0
+
+  const mstats = raw.memory_stats?.stats ?? {}
+  const inactive = mstats.total_inactive_file ?? mstats.inactive_file ?? 0
+  const mem_used_bytes = Math.max(0, usage - inactive)
+  const mem_limit_bytes = raw.memory_stats?.limit ?? 0
+  const mem_pct = mem_limit_bytes > 0 ? round1((mem_used_bytes / mem_limit_bytes) * 100) : 0
+
+  return { cpu_pct, mem_used_bytes, mem_limit_bytes, mem_pct }
+}
+
+/** Fetch a one-shot stats sample for a container and reduce it to ContainerStats. */
+export async function containerStats(shortId: string): Promise<ContainerStats | null> {
+  if (!dockerAvailable()) return null
+  try {
+    const raw = await getJSON<RawStats>(`/containers/${shortId}/stats?stream=false`)
+    return computeStats(raw)
+  } catch {
+    return null
+  }
+}
+
 /**
  * Returns the discovered services, or `null` when discovery could not run
  * (no socket / Docker API error). `null` is distinct from `[]` ("ran fine,

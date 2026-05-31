@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import type { Context } from 'hono'
 import { db, type ServiceRow } from '../db.js'
-import { inspectContainer } from '../docker.js'
+import { containerStats, inspectContainer } from '../docker.js'
 import { computeGaps } from '../monitor.js'
 import { forgetService } from '../notify.js'
 import { isValidHttpUrl } from '../validate.js'
@@ -114,6 +114,18 @@ services.delete('/:id', (c) => {
   deleteServiceCascade(id)
   forgetService(id)
   return c.body(null, 204)
+})
+
+services.get('/:id/stats', async (c) => {
+  const id = c.req.param('id')
+  // Live resource stats only exist for Docker-discovered services.
+  if (!id.startsWith('docker:')) return c.json({ error: 'no container' }, 404)
+  const exists = db.prepare('SELECT 1 FROM services WHERE id = ?').get(id)
+  if (!exists) return c.json({ error: 'not found' }, 404)
+
+  const stats = await containerStats(id.slice('docker:'.length))
+  if (!stats) return c.json({ error: 'stats unavailable' }, 404)
+  return c.json(stats)
 })
 
 services.get('/:id/runtime', async (c) => {
