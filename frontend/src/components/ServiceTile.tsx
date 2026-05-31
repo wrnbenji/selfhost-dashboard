@@ -1,11 +1,13 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { Service } from '../types'
+import type { CardStats, Service } from '../types'
+import { fmtBytesShort } from './format'
 import { RuntimeButton } from './RuntimeButton'
 import { ServiceIcon } from './ServiceIcon'
 
 interface Props {
   service: Service
+  stats?: CardStats
   onDelete: (id: string) => void
   onSelect: (id: string) => void
   selected: boolean
@@ -17,7 +19,7 @@ const statusStyles = {
   unknown: { dot: 'bg-unknown', text: 'text-fg-subtle', label: 'Unknown' },
 } as const
 
-export function ServiceTile({ service, onDelete, onSelect, selected }: Props) {
+export function ServiceTile({ service, stats, onDelete, onSelect, selected }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: service.id })
 
@@ -100,6 +102,15 @@ export function ServiceTile({ service, onDelete, onSelect, selected }: Props) {
           </svg>
         </button>
       </div>
+
+      {/* live CPU/RAM — only for Docker-discovered services */}
+      {stats && (
+        <div className="flex items-center gap-2 font-mono text-[10px] text-fg-subtle tabular">
+          <span>cpu {stats.cpu_pct}%</span>
+          <span className="text-border-strong">·</span>
+          <span>{fmtBytesShort(stats.mem_used_bytes)}</span>
+        </div>
+      )}
 
       {/* footer: status + open */}
       <div className="flex items-center justify-between pt-2 border-t border-border">

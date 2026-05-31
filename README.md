@@ -17,7 +17,7 @@
 
 ---
 
-> **Status:** v0.1. Made to run on your LAN or behind a reverse proxy. There's no built-in auth yet; that's planned for v0.2.
+> **Status:** actively developed. Runs on your LAN or behind a reverse proxy, with an optional built-in single-password login (Settings → security) when you want it.
 
 Tired of bookmarking every self-hosted service and editing a config file every time something moves? selfhost-dashboard reads the labels off your Docker containers and builds the dashboard for you, then watches each service's health in real time.
 
@@ -37,6 +37,7 @@ Open <http://localhost:3000>. That's it.
 - 🔍 Label a container and its card shows up within 30 seconds.
 - 📡 Health checks run as HTTP probes and get pushed to the browser live over SSE, so you never have to refresh.
 - 📊 Per-service uptime, p95 latency, and an incident log, for the last hour, day, week, or month.
+- 📈 Live CPU and memory for each auto-discovered container — on the cards, with a 30-minute trend sparkline in the detail panel.
 - 🔔 Get pinged on Discord or any webhook the moment a service goes down — and again when it recovers.
 - ✋ Drag and drop to reorder, a 🌙 dark mode, and an optional 📄 YAML config if you'd rather not use labels.
 - 🔒 Optional single-password lock — turn it on from Settings (or an env var) and the dashboard sits behind a login (off by default for trusted LANs).
@@ -58,6 +59,7 @@ The backend reads the Docker socket (read-only) and watches for containers label
 
 - Online/offline status from HTTP `HEAD`/`GET` probes (5s timeout)
 - Average and p95 latency, uptime %, and incident count per window (1h / 24h / 7d / 30d)
+- Live CPU and memory usage for Docker-discovered services, read straight from the Docker socket
 - A coverage indicator that tells "the service was down" apart from "the monitor wasn't running"
 
 </details>
@@ -227,6 +229,7 @@ npm run test --workspace=backend   # 42 tests
 - [x] Drag & drop, dark mode, YAML config, responsive layout
 - [x] Notifications (Discord / webhook on downtime & recovery)
 - [x] Optional password protection (single-password login)
+- [x] Live per-container CPU & memory
 - [ ] More alert channels (Telegram, email)
 - [ ] Widgets (weather, RSS, Grafana embeds)
 - [ ] Kubernetes ingress discovery

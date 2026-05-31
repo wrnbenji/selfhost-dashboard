@@ -93,6 +93,25 @@ export interface Settings {
   retention_days: 1 | 7 | 30
 }
 
+export interface ContainerStats {
+  cpu_pct: number
+  mem_used_bytes: number
+  mem_limit_bytes: number
+  mem_pct: number
+}
+
+/** Compact resource snapshot shown on the cards (keyed by service id). */
+export interface CardStats {
+  cpu_pct: number
+  mem_used_bytes: number
+}
+
+/** Short rolling history for the detail-panel sparklines. */
+export interface StatsHistory {
+  cpu: number[]
+  mem: number[]
+}
+
 export interface AuthStatus {
   required: boolean
   authed: boolean

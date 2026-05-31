@@ -3,6 +3,8 @@ interface Props {
   color?: string
   height?: number
   fill?: boolean
+  /** Scale to the data's own min/max instead of a fixed 0–100 (for non-% series). */
+  autoScale?: boolean
 }
 
 export function Sparkline({
@@ -10,13 +12,14 @@ export function Sparkline({
   color = 'var(--accent)',
   height = 28,
   fill = true,
+  autoScale = false,
 }: Props) {
   if (values.length === 0) return null
   const w = 100
   const h = 24
   const clean = values.map((v) => (v ?? 0))
-  const max = Math.max(100, ...clean)
-  const min = Math.min(0, ...clean)
+  const max = autoScale ? Math.max(...clean) : Math.max(100, ...clean)
+  const min = autoScale ? Math.min(...clean) : Math.min(0, ...clean)
   const range = max - min || 1
 
   const step = clean.length > 1 ? w / (clean.length - 1) : 0

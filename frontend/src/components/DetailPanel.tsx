@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import type {
+  ContainerStats,
   Incident,
   NotificationConfig,
   Service,
   ServiceStats,
+  StatsHistory,
   StatsWindow,
   TimelineBucket,
 } from '../types'
+import { Sparkline } from './Sparkline'
 import { StatusIndicator } from './StatusBadge'
 import { Timeline } from './Timeline'
 
@@ -40,6 +43,13 @@ function fmtDuration(ms: number | null): string {
   return `${(ms / 3_600_000).toFixed(1)}h`
 }
 
+function fmtBytes(n: number): string {
+  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`
+  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(0)} MB`
+  if (n >= 1024) return `${(n / 1024).toFixed(0)} KB`
+  return `${n} B`
+}
+
 function fmtTimestamp(ts: number): string {
   return new Date(ts).toLocaleString(undefined, {
     month: 'short',
@@ -61,6 +71,8 @@ export function DetailPanel({
   const [timeline, setTimeline] = useState<TimelineBucket[] | null>(null)
   const [incidents, setIncidents] = useState<Incident[] | null>(null)
   const [notifyCfg, setNotifyCfg] = useState<NotificationConfig | null>(null)
+  const [containerStats, setContainerStats] = useState<ContainerStats | null>(null)
+  const [statsHistory, setStatsHistory] = useState<StatsHistory | null>(null)
 
   useEffect(() => {
     if (!service) return
@@ -73,6 +85,31 @@ export function DetailPanel({
       cancelled = true
     }
   }, [service])
+
+  // Live CPU/RAM + short history, only for Docker-discovered services. Refreshes
+  // with bumpKey.
+  useEffect(() => {
+    if (!service || !service.id.startsWith('docker:')) {
+      setContainerStats(null)
+      setStatsHistory(null)
+      return
+    }
+    let cancelled = false
+    api
+      .containerStats(service.id)
+      .then((s) => !cancelled && setContainerStats(s))
+      .catch(() => !cancelled && setContainerStats(null))
+    api
+      .statsHistory(service.id)
+      .then((h) => !cancelled && setStatsHistory(h))
+      .catch(() => !cancelled && setStatsHistory(null))
+    return () => {
+      cancelled = true
+    }
+    // Depend on the id (not the whole service object): live status/stats SSE updates
+    // replace the service object every tick, and the one-shot /stats call takes ~1-2s
+    // (Docker sampling) — keying on the object would cancel each fetch before it lands.
+  }, [service?.id, bumpKey])
 
   const muted = service ? (notifyCfg?.muted.includes(service.id) ?? false) : false
   const toggleMute = async () => {
@@ -230,6 +267,32 @@ export function DetailPanel({
             />
           </div>
 
+          {containerStats && (
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-wider text-fg-muted mb-2">
+                resources · live
+              </div>
+              <div className="space-y-3 border border-border px-3 py-3">
+                <ResourceBar
+                  label="cpu"
+                  pct={containerStats.cpu_pct}
+                  value={`${containerStats.cpu_pct}%`}
+                />
+                <ResourceBar
+                  label="memory"
+                  pct={containerStats.mem_pct}
+                  value={`${fmtBytes(containerStats.mem_used_bytes)} / ${fmtBytes(containerStats.mem_limit_bytes)}`}
+                />
+                {statsHistory && statsHistory.cpu.length > 1 && (
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <Trend label="cpu" values={statsHistory.cpu} />
+                    <Trend label="memory" values={statsHistory.mem} autoScale color="var(--fg-muted)" />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div>
             <div className="font-mono text-[10px] uppercase tracking-wider text-fg-muted mb-2">
               timeline · {window}
@@ -273,6 +336,45 @@ export function DetailPanel({
           </div>
         </div>
       </aside>
+    </div>
+  )
+}
+
+function Trend({
+  label,
+  values,
+  autoScale,
+  color,
+}: {
+  label: string
+  values: number[]
+  autoScale?: boolean
+  color?: string
+}) {
+  return (
+    <div>
+      <div className="font-mono text-[9px] uppercase tracking-wider text-fg-subtle mb-1">
+        {label} · 30m
+      </div>
+      <Sparkline values={values} height={24} autoScale={autoScale} color={color} />
+    </div>
+  )
+}
+
+function ResourceBar({ label, pct, value }: { label: string; pct: number; value: string }) {
+  const clamped = Math.max(0, Math.min(100, pct))
+  return (
+    <div>
+      <div className="flex items-center justify-between font-mono text-[10px] mb-1">
+        <span className="uppercase tracking-wider text-fg-muted">{label}</span>
+        <span className="tabular text-fg">{value}</span>
+      </div>
+      <div className="h-1.5 bg-border/50">
+        <div
+          className={`h-full transition-all ${clamped >= 90 ? 'bg-offline' : 'bg-accent'}`}
+          style={{ width: `${clamped}%` }}
+        />
+      </div>
     </div>
   )
 }

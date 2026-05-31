@@ -1,9 +1,10 @@
 import { Hono } from 'hono'
 import type { Context } from 'hono'
 import { db, type ServiceRow } from '../db.js'
-import { inspectContainer } from '../docker.js'
+import { containerStats, inspectContainer } from '../docker.js'
 import { computeGaps } from '../monitor.js'
 import { forgetService } from '../notify.js'
+import { forgetCardStats, getAllCardStats, getStatsHistory } from '../stats-store.js'
 import { isValidHttpUrl } from '../validate.js'
 
 export const services = new Hono()
@@ -113,7 +114,32 @@ services.delete('/:id', (c) => {
   const id = c.req.param('id')
   deleteServiceCascade(id)
   forgetService(id)
+  forgetCardStats(id)
   return c.body(null, 204)
+})
+
+// Latest CPU/RAM for all Docker-backed services, for the cards' initial paint.
+// Live updates afterwards arrive over SSE ('stats' events).
+services.get('/stats', (c) => {
+  return c.json(getAllCardStats())
+})
+
+services.get('/:id/stats/history', (c) => {
+  const id = c.req.param('id')
+  if (!id.startsWith('docker:')) return c.json({ error: 'no container' }, 404)
+  return c.json(getStatsHistory(id))
+})
+
+services.get('/:id/stats', async (c) => {
+  const id = c.req.param('id')
+  // Live resource stats only exist for Docker-discovered services.
+  if (!id.startsWith('docker:')) return c.json({ error: 'no container' }, 404)
+  const exists = db.prepare('SELECT 1 FROM services WHERE id = ?').get(id)
+  if (!exists) return c.json({ error: 'not found' }, 404)
+
+  const stats = await containerStats(id.slice('docker:'.length))
+  if (!stats) return c.json({ error: 'stats unavailable' }, 404)
+  return c.json(stats)
 })
 
 services.get('/:id/runtime', async (c) => {

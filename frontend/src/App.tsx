@@ -30,6 +30,7 @@ import {
   ALL_CATEGORY,
   UNCATEGORIZED,
   type AuthStatus,
+  type CardStats,
   type NewService,
   type Service,
   type StatsWindow,
@@ -59,6 +60,7 @@ export function App() {
   const [navOpen, setNavOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [auth, setAuth] = useState<AuthStatus | null>(null)
+  const [statsMap, setStatsMap] = useState<Record<string, CardStats>>({})
   const { theme, setTheme } = useTheme()
 
   // Register the 401 handler first, then probe auth status. An expired session
@@ -97,6 +99,11 @@ export function App() {
         setError(null) // clear any prior error (e.g. a pre-login 401)
       })
       .catch((e) => setError(String(e)))
+    // initial paint of card CPU/RAM; live updates then arrive over SSE
+    api
+      .allContainerStats()
+      .then(setStatsMap)
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -112,6 +119,9 @@ export function App() {
       )
     }, []),
     onServicesChanged: load,
+    onContainerStats: useCallback(({ id, cpu_pct, mem_used_bytes }) => {
+      setStatsMap((prev) => ({ ...prev, [id]: { cpu_pct, mem_used_bytes } }))
+    }, []),
   })
 
   useEffect(() => {
@@ -365,6 +375,7 @@ export function App() {
                     <ServiceTile
                       key={s.id}
                       service={s}
+                      stats={statsMap[s.id]}
                       onDelete={handleDelete}
                       onSelect={setSelectedId}
                       selected={selectedId === s.id}
@@ -391,6 +402,7 @@ export function App() {
                       <li key={s.id}>
                         <ServiceCard
                           service={s}
+                          stats={statsMap[s.id]}
                           statsWindow={statsWindow}
                           statsBump={statsBump}
                           onDelete={handleDelete}
