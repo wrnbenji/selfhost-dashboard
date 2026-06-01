@@ -1,4 +1,4 @@
-# Optional YAML config — mount as /app/services.yaml in the container.
+# Optional YAML config. Mount as /app/services.yaml in the container.
 # Changes are hot-reloaded.
 services:
   - name: Plex
