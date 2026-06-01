@@ -48,7 +48,7 @@ export const api = {
     return r.json()
   },
   update: async (id: string, patch: Partial<Service>): Promise<void> => {
-    const r = await gfetch(`/api/services/${id}`, {
+    const r = await gfetch(`/api/services/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(patch),
@@ -56,7 +56,7 @@ export const api = {
     if (!r.ok) throw new Error(`PATCH /api/services/${id} ${r.status}`)
   },
   remove: async (id: string): Promise<void> => {
-    const r = await gfetch(`/api/services/${id}`, { method: 'DELETE' })
+    const r = await gfetch(`/api/services/${encodeURIComponent(id)}`, { method: 'DELETE' })
     if (!r.ok) throw new Error(`DELETE /api/services/${id} ${r.status}`)
   },
   reorder: async (order: string[]): Promise<void> => {
@@ -83,7 +83,7 @@ export const api = {
     return r.json()
   },
   serviceStats: async (id: string, window: StatsWindow = '24h'): Promise<ServiceStats> => {
-    const r = await gfetch(`/api/stats/service/${id}?window=${window}`)
+    const r = await gfetch(`/api/stats/service/${encodeURIComponent(id)}?window=${window}`)
     if (!r.ok) throw new Error(`GET service stats ${r.status}`)
     return r.json()
   },
@@ -93,7 +93,7 @@ export const api = {
     buckets = 48,
   ): Promise<{ buckets: TimelineBucket[] }> => {
     const r = await gfetch(
-      `/api/stats/service/${id}/timeline?window=${window}&buckets=${buckets}`,
+      `/api/stats/service/${encodeURIComponent(id)}/timeline?window=${window}&buckets=${buckets}`,
     )
     if (!r.ok) throw new Error(`GET timeline ${r.status}`)
     return r.json()
@@ -102,7 +102,7 @@ export const api = {
     id: string,
     window: StatsWindow = '24h',
   ): Promise<{ incidents: Incident[] }> => {
-    const r = await gfetch(`/api/stats/service/${id}/incidents?window=${window}`)
+    const r = await gfetch(`/api/stats/service/${encodeURIComponent(id)}/incidents?window=${window}`)
     if (!r.ok) throw new Error(`GET incidents ${r.status}`)
     return r.json()
   },
@@ -117,12 +117,12 @@ export const api = {
     return r.json()
   },
   runtime: async (id: string): Promise<Runtime> => {
-    const r = await gfetch(`/api/services/${id}/runtime`)
+    const r = await gfetch(`/api/services/${encodeURIComponent(id)}/runtime`)
     if (!r.ok) throw new Error(`GET runtime ${r.status}`)
     return r.json()
   },
   containerStats: async (id: string): Promise<ContainerStats | null> => {
-    const r = await gfetch(`/api/services/${id}/stats`)
+    const r = await gfetch(`/api/services/${encodeURIComponent(id)}/stats`)
     if (r.status === 404) return null // not a container / stats unavailable
     if (!r.ok) throw new Error(`GET container stats ${r.status}`)
     return r.json()
@@ -133,7 +133,7 @@ export const api = {
     return r.json()
   },
   statsHistory: async (id: string): Promise<StatsHistory | null> => {
-    const r = await gfetch(`/api/services/${id}/stats/history`)
+    const r = await gfetch(`/api/services/${encodeURIComponent(id)}/stats/history`)
     if (r.status === 404) return null
     if (!r.ok) throw new Error(`GET stats history ${r.status}`)
     return r.json()

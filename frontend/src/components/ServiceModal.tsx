@@ -84,9 +84,11 @@ export function ServiceModal({ open, mode, initial, onClose, onSubmit }: Props) 
   const isReadonly = mode === 'edit' && initial && initial.id.startsWith('yaml:')
   const idHint = initial?.id.startsWith('docker:')
     ? 'this service is auto-discovered from Docker labels — name/url updates here will be overwritten on the next scan'
-    : initial?.id.startsWith('yaml:')
-      ? 'this service is defined in services.yaml — edit the YAML to change it'
-      : null
+    : initial?.id.startsWith('k8s:')
+      ? 'this service is auto-discovered from a Kubernetes ingress — name/url updates here will be overwritten on the next scan'
+      : initial?.id.startsWith('yaml:')
+        ? 'this service is defined in services.yaml — edit the YAML to change it'
+        : null
 
   return (
     <div
