@@ -38,6 +38,20 @@ const server = serve({ fetch: app.fetch, port }, ({ port }) => {
   console.log(`backend listening on http://localhost:${port}`)
 })
 
+// A friendly message instead of an unhandled-error stack trace when the port is
+// taken — almost always means another copy of the dashboard is already running.
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      `\n✗ Port ${port} is already in use — is the dashboard already running?\n` +
+        `  Stop the other process (e.g. \`lsof -ti:${port} | xargs kill\`) ` +
+        `or set PORT to a free port.\n`,
+    )
+    process.exit(1)
+  }
+  throw err
+})
+
 function shutdown() {
   stopHealthChecks()
   if (discoveryTimer) clearInterval(discoveryTimer)
