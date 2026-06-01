@@ -253,6 +253,5 @@ Issues and PRs are welcome, it's still early days. See [Local development](#-loc
 
 If selfhost-dashboard is useful to you, a ⭐ helps others find it.
 
-[![Star History Chart](https://api.star-history.com/svg?repos=wrnbenji/selfhost-dashboard&type=Date)](https://star-history.com/#wrnbenji/selfhost-dashboard&Date)
 
 </div>
