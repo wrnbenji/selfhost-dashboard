@@ -39,6 +39,7 @@ Open <http://localhost:3000>. That's it.
 - 📊 Per-service uptime, p95 latency, and an incident log, for the last hour, day, week, or month.
 - 📈 Live CPU and memory for each auto-discovered container — on the cards, with a 30-minute trend sparkline in the detail panel.
 - 🔔 Get pinged on Discord or any webhook the moment a service goes down — and again when it recovers.
+- 🧩 Pin widgets to the dashboard — embed a Grafana panel (or any page) and keep notes with clickable links.
 - ✋ Drag and drop to reorder, a 🌙 dark mode, and an optional 📄 YAML config if you'd rather not use labels.
 - 🔒 Optional single-password lock — turn it on from Settings (or an env var) and the dashboard sits behind a login (off by default for trusted LANs).
 - 📦 One image and one SQLite file. No external database to run.
@@ -231,7 +232,7 @@ npm run test --workspace=backend   # 42 tests
 - [x] Optional password protection (single-password login)
 - [x] Live per-container CPU & memory
 - [ ] More alert channels (Telegram, email)
-- [ ] Widgets (weather, RSS, Grafana embeds)
+- [x] Widgets (embed any page + notes with links)
 - [ ] Kubernetes ingress discovery
 
 ---

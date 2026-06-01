@@ -740,3 +740,62 @@ describe('notifications API', () => {
     assert.equal(body.webhook_url_set, true)
   })
 })
+
+describe('widgets CRUD', () => {
+  test('rejects an invalid widget (bad embed url) with 400', async () => {
+    const r = await postJSON('/api/widgets', { type: 'embed', config: { url: 'ftp://x' } })
+    assert.equal(r.status, 400)
+  })
+
+  test('creates embed + note, lists them ordered with parsed config', async () => {
+    db.exec('DELETE FROM widgets')
+    const e = await postJSON('/api/widgets', {
+      type: 'embed',
+      title: 'Grafana',
+      config: { url: 'http://graf.test/d', height: 400 },
+    })
+    assert.equal(e.status, 201)
+    await postJSON('/api/widgets', { type: 'note', title: 'Links', config: { text: 'r: http://10.0.0.1' } })
+
+    const list = (await (await req('/api/widgets')).json()) as {
+      id: string
+      type: string
+      config: Record<string, unknown>
+    }[]
+    assert.equal(list.length, 2)
+    assert.equal(list[0].type, 'embed')
+    assert.equal(list[0].config.url, 'http://graf.test/d')
+    assert.equal(list[0].config.height, 400)
+    assert.equal(list[1].config.text, 'r: http://10.0.0.1')
+  })
+
+  test('patches a widget config', async () => {
+    db.exec('DELETE FROM widgets')
+    const { id } = (await (
+      await postJSON('/api/widgets', { type: 'note', config: { text: 'old' } })
+    ).json()) as { id: string }
+    const r = await patchJSON(`/api/widgets/${id}`, { config: { text: 'new' } })
+    assert.equal(r.status, 200)
+    const list = (await (await req('/api/widgets')).json()) as { config: { text: string } }[]
+    assert.equal(list[0].config.text, 'new')
+  })
+
+  test('reorder updates sort order', async () => {
+    db.exec('DELETE FROM widgets')
+    const a = (await (await postJSON('/api/widgets', { type: 'note', config: { text: 'a' } })).json()) as { id: string }
+    const b = (await (await postJSON('/api/widgets', { type: 'note', config: { text: 'b' } })).json()) as { id: string }
+    await patchJSON('/api/widgets/reorder', { order: [b.id, a.id] })
+    const list = (await (await req('/api/widgets')).json()) as { id: string }[]
+    assert.equal(list[0].id, b.id)
+    assert.equal(list[1].id, a.id)
+  })
+
+  test('deletes a widget', async () => {
+    db.exec('DELETE FROM widgets')
+    const { id } = (await (
+      await postJSON('/api/widgets', { type: 'note', config: { text: 'x' } })
+    ).json()) as { id: string }
+    await req(`/api/widgets/${id}`, { method: 'DELETE' })
+    assert.equal(((await (await req('/api/widgets')).json()) as unknown[]).length, 0)
+  })
+})
