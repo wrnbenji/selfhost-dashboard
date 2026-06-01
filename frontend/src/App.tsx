@@ -21,6 +21,8 @@ import { MonitorPill } from './components/MonitorPill'
 import { ServiceCard } from './components/ServiceCard'
 import { ServiceTile } from './components/ServiceTile'
 import { SettingsPanel } from './components/SettingsPanel'
+import { WidgetCard } from './components/WidgetCard'
+import { WidgetModal } from './components/WidgetModal'
 import { Sidebar } from './components/Sidebar'
 import { StatCards } from './components/StatCards'
 import { ViewToggle } from './components/ViewToggle'
@@ -32,9 +34,11 @@ import {
   type AuthStatus,
   type CardStats,
   type NewService,
+  type NewWidget,
   type Service,
   type StatsWindow,
   type ViewMode,
+  type Widget,
 } from './types'
 
 function loadViewMode(): ViewMode {
@@ -61,7 +65,14 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [auth, setAuth] = useState<AuthStatus | null>(null)
   const [statsMap, setStatsMap] = useState<Record<string, CardStats>>({})
+  const [widgets, setWidgets] = useState<Widget[]>([])
+  const [widgetModalOpen, setWidgetModalOpen] = useState(false)
+  const [editingWidget, setEditingWidget] = useState<Widget | null>(null)
   const { theme, setTheme } = useTheme()
+
+  const loadWidgets = useCallback(() => {
+    api.widgets().then(setWidgets).catch(() => {})
+  }, [])
 
   // Register the 401 handler first, then probe auth status. An expired session
   // (or no session when a password is set) flips us to the login screen.
@@ -108,7 +119,8 @@ export function App() {
 
   useEffect(() => {
     load()
-  }, [load])
+    loadWidgets()
+  }, [load, loadWidgets])
 
   useServiceEvents({
     onStatus: useCallback(({ id, status, last_check }) => {
@@ -138,6 +150,32 @@ export function App() {
     if (!editingId) return
     await api.update(editingId, s)
     load()
+  }
+
+  const handleWidgetSubmit = async (data: NewWidget) => {
+    if (editingWidget) await api.updateWidget(editingWidget.id, data)
+    else await api.createWidget(data)
+    loadWidgets()
+  }
+
+  const handleWidgetDelete = async (id: string) => {
+    setWidgets((prev) => prev.filter((w) => w.id !== id))
+    try {
+      await api.deleteWidget(id)
+    } catch {
+      loadWidgets()
+    }
+  }
+
+  const handleWidgetDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const oldIdx = widgets.findIndex((w) => w.id === active.id)
+    const newIdx = widgets.findIndex((w) => w.id === over.id)
+    if (oldIdx === -1 || newIdx === -1) return
+    const next = arrayMove(widgets, oldIdx, newIdx)
+    setWidgets(next)
+    api.reorderWidgets(next.map((w) => w.id)).catch(loadWidgets)
   }
 
   const handleToggleEnabled = async (id: string, enabled: boolean) => {
@@ -293,6 +331,16 @@ export function App() {
                 </svg>
               </button>
               <button
+                onClick={() => {
+                  setEditingWidget(null)
+                  setWidgetModalOpen(true)
+                }}
+                aria-label="Add widget"
+                className="font-mono text-[11px] uppercase tracking-wider px-2.5 py-1.5 border border-border hover:border-border-strong text-fg-muted hover:text-fg ml-1 transition-colors"
+              >
+                + widget
+              </button>
+              <button
                 onClick={() => setModalOpen(true)}
                 aria-label="Add new service"
                 className="font-mono text-[11px] uppercase tracking-wider px-2.5 py-1.5 bg-fg text-bg hover:opacity-80 ml-1"
@@ -422,6 +470,39 @@ export function App() {
               no matches{filter ? ` for "${filter}"` : ' in this category'}
             </p>
           )}
+
+          {/* Widgets — dashboard-level, shown on the Overview (no category filter) */}
+          {category === ALL_CATEGORY && !filter && widgets.length > 0 && (
+            <div className="mt-8">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-fg-subtle mb-2">
+                Widgets
+              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleWidgetDragEnd}
+              >
+                <SortableContext
+                  items={widgets.map((w) => w.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(320px,1fr))]">
+                    {widgets.map((w) => (
+                      <WidgetCard
+                        key={w.id}
+                        widget={w}
+                        onEdit={(widget) => {
+                          setEditingWidget(widget)
+                          setWidgetModalOpen(true)
+                        }}
+                        onDelete={handleWidgetDelete}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
+          )}
         </main>
 
         <footer className="lg:hidden px-4 sm:px-6 py-3 border-t border-border font-mono text-[10px] text-fg-subtle">
@@ -453,6 +534,16 @@ export function App() {
         onClose={() => setSelectedId(null)}
         onEdit={(id) => setEditingId(id)}
         onToggleEnabled={handleToggleEnabled}
+      />
+
+      <WidgetModal
+        open={widgetModalOpen}
+        initial={editingWidget}
+        onClose={() => {
+          setWidgetModalOpen(false)
+          setEditingWidget(null)
+        }}
+        onSubmit={handleWidgetSubmit}
       />
 
       <SettingsPanel

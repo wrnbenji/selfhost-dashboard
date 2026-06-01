@@ -37,10 +37,11 @@ Open <http://localhost:3000>. That's it.
 - 🔍 Label a container and its card shows up within 30 seconds.
 - 📡 Health checks run as HTTP probes and get pushed to the browser live over SSE, so you never have to refresh.
 - 📊 Per-service uptime, p95 latency, and an incident log, for the last hour, day, week, or month.
-- 📈 Live CPU and memory for each auto-discovered container — on the cards, with a 30-minute trend sparkline in the detail panel.
-- 🔔 Get pinged on Discord or any webhook the moment a service goes down — and again when it recovers.
+- 📈 Live CPU and memory for each auto-discovered container, shown on the cards, with a 30-minute trend sparkline in the detail panel.
+- 🔔 Get pinged on Discord or any webhook the moment a service goes down, and again when it recovers.
+- 🧩 Pin widgets to the dashboard: embed a Grafana panel (or any page), or keep notes with clickable links.
 - ✋ Drag and drop to reorder, a 🌙 dark mode, and an optional 📄 YAML config if you'd rather not use labels.
-- 🔒 Optional single-password lock — turn it on from Settings (or an env var) and the dashboard sits behind a login (off by default for trusted LANs).
+- 🔒 Optional single-password lock. Turn it on from Settings (or an env var) and the dashboard sits behind a login. It's off by default for trusted LANs.
 - 📦 One image and one SQLite file. No external database to run.
 
 <details>
@@ -69,11 +70,11 @@ The backend reads the Docker socket (read-only) and watches for containers label
 
 <br>
 
-Get notified when a service goes down and again when it recovers — no bot to run, the dashboard just makes an outbound POST.
+Get notified when a service goes down and again when it recovers. There's no bot to run; the dashboard just makes an outbound POST.
 
-- **Discord** — paste a channel webhook URL (Channel settings → *Integrations → Webhooks*).
-- **Webhook** — any URL that takes a JSON `POST`; works with ntfy, Home Assistant, n8n, or your own script.
-- **Flap protection** — an alert only fires after a status holds for *N* consecutive checks (default 2), so a single blip won't page you.
+- **Discord:** paste a channel webhook URL (Channel settings → *Integrations → Webhooks*).
+- **Webhook:** any URL that takes a JSON `POST`. Works with ntfy, Home Assistant, n8n, or your own script.
+- **Flap protection:** an alert only fires after a status holds for *N* consecutive checks (default 2), so a single blip won't page you.
 - **Per-service mute** and a **Send test** button live in the UI. Configure it under **Settings → notifications**.
 
 </details>
@@ -149,16 +150,16 @@ It reloads on save. See [`services.example.yaml`](services.example.yaml).
 
 ### Password protection
 
-A single password can lock the whole dashboard — the API returns `401` until you log
-in, and the UI shows an unlock screen. There are two ways to set it; off by default
-(for a trusted LAN).
+A single password can lock the whole dashboard. The API returns `401` until you log
+in, and the UI shows an unlock screen. There are two ways to set it, and it's off by
+default (for a trusted LAN).
 
 **From the UI (no restart):** open **Settings → security**, set a password, and the
-lock turns on immediately. Change or remove it from the same place — changing it logs
+lock turns on immediately. Change or remove it from the same place. Changing it logs
 out every other session. The password is stored hashed (`scrypt`) in the database.
 
-**From the environment (ops-managed):** set `AUTH_PASSWORD` and it takes precedence;
-the UI field becomes read-only.
+**From the environment (ops-managed):** set `AUTH_PASSWORD` and it takes precedence.
+The UI field then becomes read-only.
 
 ```bash
 docker run -d -p 3000:3000 \
@@ -168,19 +169,19 @@ docker run -d -p 3000:3000 \
   ghcr.io/wrnbenji/selfhost-dashboard
 ```
 
-No bot, no external IdP — just one password, a signed `HttpOnly` session cookie, and
+No bot, no external IdP. Just one password, a signed `HttpOnly` session cookie, and
 a **Log out** entry under Settings. Already running an SSO/reverse proxy (Authelia,
 Authentik, oauth2-proxy)? Leave it unset and let the proxy handle it.
 
 ### Notifications
 
 Open **Settings → notifications → configure** to get alerted when a service goes
-down (and again when it recovers). No bot to run — the dashboard only makes an
+down (and again when it recovers). There's no bot to run; the dashboard only makes an
 outbound POST:
 
-- **Discord** — Channel settings → *Integrations → Webhooks → New Webhook*, copy the
+- **Discord:** Channel settings → *Integrations → Webhooks → New Webhook*, copy the
   URL, paste it in.
-- **Webhook** — any URL that accepts a JSON `POST` (ntfy, Home Assistant, n8n, your
+- **Webhook:** any URL that accepts a JSON `POST` (ntfy, Home Assistant, n8n, your
   own script). Payload: `{ service, status, url, timestamp, message }`.
 
 Alerts only fire after a status holds for *N* consecutive checks (default 2), so a
@@ -216,7 +217,7 @@ Production bundle (frontend builds into `backend/public/`, backend into `backend
 ```bash
 npm run build
 npm start      # serves API + UI on :3001
-npm run test --workspace=backend   # 42 tests
+npm run test --workspace=backend   # run the backend test suite
 ```
 
 **Stack:** Node + [Hono](https://hono.dev), better-sqlite3, React + Vite, Tailwind.
@@ -231,7 +232,7 @@ npm run test --workspace=backend   # 42 tests
 - [x] Optional password protection (single-password login)
 - [x] Live per-container CPU & memory
 - [ ] More alert channels (Telegram, email)
-- [ ] Widgets (weather, RSS, Grafana embeds)
+- [x] Widgets (embed any page + notes with links)
 - [ ] Kubernetes ingress discovery
 
 ---

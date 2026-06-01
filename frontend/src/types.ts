@@ -161,6 +161,27 @@ export interface Runtime {
   container_state: string | null
 }
 
+export type WidgetType = 'embed' | 'note'
+export interface EmbedConfig {
+  url: string
+  height: number
+}
+export interface NoteConfig {
+  text: string
+}
+export interface Widget {
+  id: string
+  type: WidgetType
+  title: string
+  config: EmbedConfig | NoteConfig
+  sort_order: number
+}
+export interface NewWidget {
+  type: WidgetType
+  title?: string
+  config: Partial<EmbedConfig> | NoteConfig
+}
+
 export interface NewService {
   name: string
   url: string

@@ -16,6 +16,8 @@ import type {
   StatsHistory,
   StatsWindow,
   TimelineBucket,
+  Widget,
+  NewWidget,
 } from './types'
 
 // Global 401 handling: any data call that comes back unauthorized (e.g. an
@@ -188,6 +190,46 @@ export const api = {
   },
   logout: async (): Promise<void> => {
     await fetch('/api/auth/logout', { method: 'POST' })
+  },
+  widgets: async (): Promise<Widget[]> => {
+    const r = await gfetch('/api/widgets')
+    if (!r.ok) throw new Error(`GET widgets ${r.status}`)
+    return r.json()
+  },
+  createWidget: async (w: NewWidget): Promise<{ id: string }> => {
+    const r = await gfetch('/api/widgets', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(w),
+    })
+    if (!r.ok) {
+      const msg = await r.json().then((b) => (b as { error?: string }).error).catch(() => null)
+      throw new Error(msg ?? `POST widget ${r.status}`)
+    }
+    return r.json()
+  },
+  updateWidget: async (id: string, patch: Partial<NewWidget>): Promise<void> => {
+    const r = await gfetch(`/api/widgets/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    if (!r.ok) {
+      const msg = await r.json().then((b) => (b as { error?: string }).error).catch(() => null)
+      throw new Error(msg ?? `PATCH widget ${r.status}`)
+    }
+  },
+  deleteWidget: async (id: string): Promise<void> => {
+    const r = await gfetch(`/api/widgets/${id}`, { method: 'DELETE' })
+    if (!r.ok) throw new Error(`DELETE widget ${r.status}`)
+  },
+  reorderWidgets: async (order: string[]): Promise<void> => {
+    const r = await gfetch('/api/widgets/reorder', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ order }),
+    })
+    if (!r.ok) throw new Error(`PATCH widget reorder ${r.status}`)
   },
   setPassword: async (body: {
     current_password?: string

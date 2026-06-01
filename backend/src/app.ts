@@ -13,6 +13,7 @@ import { notifications } from './routes/notifications.js'
 import { services } from './routes/services.js'
 import { settings } from './routes/settings.js'
 import { stats } from './routes/stats.js'
+import { widgets } from './routes/widgets.js'
 
 export interface AppOptions {
   serveStaticDir?: string | null
@@ -44,6 +45,7 @@ export function createApp(opts: AppOptions = {}): Hono {
   app.route('/api/settings', settings)
   app.route('/api/monitor', monitor)
   app.route('/api/notifications', notifications)
+  app.route('/api/widgets', widgets)
 
   // Unknown API routes get a JSON 404 — never fall through to the SPA index.html.
   app.all('/api/*', (c) => c.json({ error: 'not found' }, 404))

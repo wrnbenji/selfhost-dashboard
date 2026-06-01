@@ -49,6 +49,14 @@ db.exec(`
     value TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS widgets (
+    id          TEXT PRIMARY KEY,
+    type        TEXT NOT NULL,
+    title       TEXT,
+    config      TEXT NOT NULL,
+    sort_order  INTEGER DEFAULT 0
+  );
+
   CREATE TABLE IF NOT EXISTS monitor_sessions (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     started_at   INTEGER NOT NULL,
