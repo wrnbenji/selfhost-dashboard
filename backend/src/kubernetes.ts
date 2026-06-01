@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { parse } from 'yaml'
 import { isValidHttpUrl } from './validate.js'
 import type { DiscoveredService } from './docker.js'
 
@@ -11,6 +13,49 @@ export interface Ingress {
     rules?: { host?: string; http?: { paths?: { path?: string }[] } }[]
     tls?: { hosts?: string[] }[]
   }
+}
+
+export interface ResolvedConfig {
+  server: string
+  ca?: Buffer
+  token?: string
+  clientCert?: Buffer
+  clientKey?: Buffer
+  insecure: boolean
+}
+
+/**
+ * Pure-ish: resolve the current-context cluster/user from kubeconfig YAML into a
+ * ResolvedConfig. Inline base64 `*-data` fields are decoded directly; file-path
+ * fields are read from disk. Returns null if the current context can't resolve.
+ */
+export function parseKubeconfig(yamlText: string): ResolvedConfig | null {
+  const cfg = parse(yamlText) as any
+  const ctx = cfg?.contexts?.find((c: any) => c.name === cfg['current-context'])?.context
+  if (!ctx) return null
+  const cluster = cfg.clusters?.find((c: any) => c.name === ctx.cluster)?.cluster
+  const user = cfg.users?.find((u: any) => u.name === ctx.user)?.user
+  if (!cluster?.server) return null
+
+  const out: ResolvedConfig = {
+    server: cluster.server,
+    insecure: cluster['insecure-skip-tls-verify'] === true,
+  }
+  if (cluster['certificate-authority-data'])
+    out.ca = Buffer.from(cluster['certificate-authority-data'], 'base64')
+  else if (cluster['certificate-authority'])
+    out.ca = readFileSync(cluster['certificate-authority'])
+
+  if (user?.token) out.token = user.token
+  if (user?.['client-certificate-data'])
+    out.clientCert = Buffer.from(user['client-certificate-data'], 'base64')
+  else if (user?.['client-certificate'])
+    out.clientCert = readFileSync(user['client-certificate'])
+  if (user?.['client-key-data'])
+    out.clientKey = Buffer.from(user['client-key-data'], 'base64')
+  else if (user?.['client-key']) out.clientKey = readFileSync(user['client-key'])
+
+  return out
 }
 
 /** Shape of the K8s ingress list response; consumed by the API client (later task). */

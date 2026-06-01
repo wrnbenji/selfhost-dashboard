@@ -1,6 +1,7 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { ingressesToServices, type Ingress } from '../src/kubernetes.js'
+import { parseKubeconfig } from '../src/kubernetes.js'
 
 function ing(partial: Partial<Ingress> & { metadata: Ingress['metadata'] }): Ingress {
   return { spec: {}, ...partial } as Ingress
@@ -85,5 +86,63 @@ describe('ingressesToServices', () => {
             spec: { rules: [{ host: 'y.example.com' }] } }),
     ])
     assert.equal(out.length, 0)
+  })
+})
+
+describe('parseKubeconfig', () => {
+  const caB64 = Buffer.from('CA-PEM').toString('base64')
+
+  const yaml = `
+apiVersion: v1
+current-context: ctx
+clusters:
+  - name: c1
+    cluster:
+      server: https://api.example.com:6443
+      certificate-authority-data: ${caB64}
+users:
+  - name: u1
+    user:
+      token: secret-token
+contexts:
+  - name: ctx
+    context:
+      cluster: c1
+      user: u1
+`
+
+  test('resolves server, CA, and token from the current context', () => {
+    const cfg = parseKubeconfig(yaml)
+    assert.ok(cfg)
+    assert.equal(cfg.server, 'https://api.example.com:6443')
+    assert.equal(cfg.token, 'secret-token')
+    assert.equal(cfg.ca?.toString(), 'CA-PEM')
+    assert.equal(cfg.insecure, false)
+  })
+
+  test('honors insecure-skip-tls-verify', () => {
+    const insecureYaml = `
+apiVersion: v1
+current-context: ctx
+clusters:
+  - name: c1
+    cluster:
+      server: https://api.example.com:6443
+      insecure-skip-tls-verify: true
+users:
+  - name: u1
+    user:
+      token: t
+contexts:
+  - name: ctx
+    context: { cluster: c1, user: u1 }
+`
+    const cfg = parseKubeconfig(insecureYaml)
+    assert.ok(cfg)
+    assert.equal(cfg.insecure, true)
+  })
+
+  test('returns null when the current context is missing', () => {
+    assert.equal(parseKubeconfig('current-context: nope\nclusters: []\n'), null)
   })
 })
