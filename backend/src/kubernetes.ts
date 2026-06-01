@@ -59,7 +59,7 @@ export function parseKubeconfig(yamlText: string): ResolvedConfig | null {
   return out
 }
 
-/** Shape of the K8s ingress list response; consumed by the API client (later task). */
+/** Shape of the K8s ingress list response; consumed by listIngresses(). */
 interface IngressList {
   items?: Ingress[]
 }
