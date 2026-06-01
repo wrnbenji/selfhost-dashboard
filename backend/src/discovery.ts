@@ -1,22 +1,25 @@
 import { db } from './db.js'
-import { discoverFromLabels } from './docker.js'
+import { discoverFromLabels, type DiscoveredService } from './docker.js'
+import { discoverFromIngresses } from './kubernetes.js'
 import { deleteServiceCascade } from './routes/services.js'
 import { publish } from './sse.js'
 
-export async function syncDockerServices(): Promise<{
-  added: number
-  updated: number
-  removed: number
-}> {
-  const discovered = await discoverFromLabels()
-  // null = discovery could not run (no socket / API error). Do nothing rather
-  // than treating it as "no containers" and wiping every discovered service.
+/**
+ * Sync a set of discovered services for one source, identified by its id prefix
+ * (e.g. 'docker:' or 'k8s:'). Only rows with that prefix are added/removed, so
+ * sources never clobber each other. `discovered === null` means discovery could
+ * not run — do nothing rather than wipe the source's services.
+ */
+function syncSource(
+  prefix: string,
+  discovered: DiscoveredService[] | null,
+): { added: number; updated: number; removed: number } {
   if (discovered === null) return { added: 0, updated: 0, removed: 0 }
   const discoveredIds = new Set(discovered.map((s) => s.id))
 
   const existing = db
-    .prepare("SELECT id FROM services WHERE id LIKE 'docker:%'")
-    .all() as { id: string }[]
+    .prepare('SELECT id FROM services WHERE id LIKE ?')
+    .all(`${prefix}%`) as { id: string }[]
   const existingIds = new Set(existing.map((e) => e.id))
 
   let added = 0
@@ -32,7 +35,7 @@ export async function syncDockerServices(): Promise<{
       category    = excluded.category
   `)
 
-  const tx = db.transaction((items: typeof discovered) => {
+  const tx = db.transaction((items: DiscoveredService[]) => {
     for (const s of items) {
       if (existingIds.has(s.id)) updated++
       else added++
@@ -53,18 +56,36 @@ export async function syncDockerServices(): Promise<{
   return { added, updated, removed }
 }
 
-export function startDiscoveryLoop(intervalMs = 30000) {
+export async function syncDockerServices() {
+  return syncSource('docker:', await discoverFromLabels())
+}
+
+export async function syncK8sServices() {
+  return syncSource('k8s:', await discoverFromIngresses())
+}
+
+function startLoop(
+  tag: string,
+  sync: () => Promise<{ added: number; updated: number; removed: number }>,
+  intervalMs: number,
+) {
   const run = () => {
-    syncDockerServices()
+    sync()
       .then((r) => {
         if (r.added || r.removed) {
-          console.log(
-            `[discovery] +${r.added} ~${r.updated} -${r.removed}`,
-          )
+          console.log(`[${tag}] +${r.added} ~${r.updated} -${r.removed}`)
         }
       })
-      .catch((e) => console.warn('[discovery]', e.message))
+      .catch((e) => console.warn(`[${tag}]`, e.message))
   }
   run()
   return setInterval(run, intervalMs)
+}
+
+export function startDiscoveryLoop(intervalMs = 30000) {
+  return startLoop('discovery', syncDockerServices, intervalMs)
+}
+
+export function startK8sDiscoveryLoop(intervalMs = 30000) {
+  return startLoop('k8s-discovery', syncK8sServices, intervalMs)
 }
