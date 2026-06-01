@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { request as httpsRequest } from 'node:https'
 import { parse } from 'yaml'
 import { isValidHttpUrl } from './validate.js'
 import type { DiscoveredService } from './docker.js'
@@ -104,4 +105,107 @@ export function ingressesToServices(items: Ingress[]): DiscoveredService[] {
     })
     // final safety net: drops empty/malformed URLs (and anything the path filter let through)
     .filter((s) => isValidHttpUrl(s.url))
+}
+
+const SA_DIR = '/var/run/secrets/kubernetes.io/serviceaccount'
+
+/** ServiceAccount token + CA mounted into the pod, or null if not in-cluster. */
+function inClusterConfig(): ResolvedConfig | null {
+  if (!existsSync(SA_DIR)) return null
+  const host = process.env.KUBERNETES_SERVICE_HOST
+  if (!host) return null
+  const port = process.env.KUBERNETES_SERVICE_PORT ?? '443'
+  try {
+    return {
+      server: `https://${host}:${port}`,
+      ca: readFileSync(`${SA_DIR}/ca.crt`),
+      token: readFileSync(`${SA_DIR}/token`, 'utf8').trim(),
+      insecure: false,
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Path to a usable kubeconfig, from $KUBECONFIG or ~/.kube/config. */
+function kubeconfigPath(): string | null {
+  const fromEnv = process.env.KUBECONFIG
+  if (fromEnv && existsSync(fromEnv)) return fromEnv
+  const home = process.env.HOME
+  const fallback = home ? `${home}/.kube/config` : null
+  if (fallback && existsSync(fallback)) return fallback
+  return null
+}
+
+/** In-cluster first, kubeconfig second. Re-read each cycle so rotated tokens are picked up. */
+function resolveConfig(): ResolvedConfig | null {
+  const inCluster = inClusterConfig()
+  if (inCluster) return inCluster
+  const path = kubeconfigPath()
+  if (!path) return null
+  try {
+    return parseKubeconfig(readFileSync(path, 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+/** True when K8s discovery can run. `K8S_DISCOVERY=off` force-disables it. */
+export function kubernetesAvailable(): boolean {
+  if (process.env.K8S_DISCOVERY === 'off') return false
+  return resolveConfig() !== null
+}
+
+function listIngresses(cfg: ResolvedConfig): Promise<Ingress[]> {
+  return new Promise((resolve, reject) => {
+    const url = new URL('/apis/networking.k8s.io/v1/ingresses', cfg.server)
+    const req = httpsRequest(
+      {
+        hostname: url.hostname,
+        port: url.port || 443,
+        path: url.pathname,
+        method: 'GET',
+        ca: cfg.ca,
+        cert: cfg.clientCert,
+        key: cfg.clientKey,
+        rejectUnauthorized: !cfg.insecure,
+        headers: cfg.token ? { Authorization: `Bearer ${cfg.token}` } : {},
+      },
+      (res) => {
+        let body = ''
+        res.setEncoding('utf8')
+        res.on('data', (c) => (body += c))
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`k8s ingresses → ${res.statusCode}: ${body}`))
+            return
+          }
+          try {
+            resolve((JSON.parse(body) as IngressList).items ?? [])
+          } catch (e) {
+            reject(e)
+          }
+        })
+      },
+    )
+    req.on('error', reject)
+    req.end()
+  })
+}
+
+/**
+ * Returns discovered services, or `null` when discovery could not run (no access
+ * / API error). `null` is distinct from `[]` ("ran fine, nothing matched") so a
+ * transient outage never wipes discovered services.
+ */
+export async function discoverFromIngresses(): Promise<DiscoveredService[] | null> {
+  const cfg = resolveConfig()
+  if (!cfg) return null
+  try {
+    const items = await listIngresses(cfg)
+    return ingressesToServices(items)
+  } catch (e) {
+    console.warn('[k8s] discovery failed:', (e as Error).message)
+    return null
+  }
 }
