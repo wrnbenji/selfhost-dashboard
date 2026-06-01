@@ -141,10 +141,10 @@ function kubeconfigPath(): string | null {
 function resolveConfig(): ResolvedConfig | null {
   const inCluster = inClusterConfig()
   if (inCluster) return inCluster
-  const path = kubeconfigPath()
-  if (!path) return null
+  const kcPath = kubeconfigPath()
+  if (!kcPath) return null
   try {
-    return parseKubeconfig(readFileSync(path, 'utf8'))
+    return parseKubeconfig(readFileSync(kcPath, 'utf8'))
   } catch {
     return null
   }
@@ -162,8 +162,8 @@ function listIngresses(cfg: ResolvedConfig): Promise<Ingress[]> {
     const req = httpsRequest(
       {
         hostname: url.hostname,
-        port: url.port || 443,
-        path: url.pathname,
+        port: url.port || '443',
+        path: url.pathname + url.search,
         method: 'GET',
         ca: cfg.ca,
         cert: cfg.clientCert,
