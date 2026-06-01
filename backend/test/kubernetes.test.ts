@@ -76,4 +76,14 @@ describe('ingressesToServices', () => {
     ])
     assert.equal(out.length, 0)
   })
+
+  test('excludes dashboard.enable values other than the string "true"', () => {
+    const out = ingressesToServices([
+      ing({ metadata: { name: 'x', namespace: 'ns', annotations: { 'dashboard.enable': 'false' } },
+            spec: { rules: [{ host: 'x.example.com' }] } }),
+      ing({ metadata: { name: 'y', namespace: 'ns', annotations: { 'dashboard.enable': '1' } },
+            spec: { rules: [{ host: 'y.example.com' }] } }),
+    ])
+    assert.equal(out.length, 0)
+  })
 })

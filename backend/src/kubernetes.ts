@@ -13,6 +13,7 @@ export interface Ingress {
   }
 }
 
+/** Shape of the K8s ingress list response; consumed by the API client (later task). */
 interface IngressList {
   items?: Ingress[]
 }
@@ -56,5 +57,6 @@ export function ingressesToServices(items: Ingress[]): DiscoveredService[] {
         category: ann['dashboard.category'] || null,
       }
     })
+    // final safety net: drops empty/malformed URLs (and anything the path filter let through)
     .filter((s) => isValidHttpUrl(s.url))
 }
