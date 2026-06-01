@@ -117,6 +117,76 @@ labels:
 
 Labeled containers show up on their own within 30 seconds, and removing the label removes the card. No restart needed.
 
+### Kubernetes ingress discovery
+
+Running on Kubernetes? The dashboard discovers services from `Ingress` resources
+the same way it does from Docker labels. Annotate an ingress and its card shows up.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: monitoring
+  annotations:
+    dashboard.enable: "true"          # required
+    dashboard.name: "Grafana"         # optional, defaults to the ingress name
+    dashboard.icon: "grafana"         # optional
+    dashboard.category: "Monitoring"  # optional
+    # dashboard.url: ...              # optional, overrides the derived URL
+spec:
+  tls:
+    - hosts: ["grafana.example.com"]  # presence of the host here -> https://
+  rules:
+    - host: grafana.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: grafana, port: { number: 3000 } } }
+```
+
+The dashboard reads ingresses cluster-wide. Give its ServiceAccount permission
+to list them:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: selfhost-dashboard, namespace: default }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: selfhost-dashboard-ingress-reader }
+rules:
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: { name: selfhost-dashboard-ingress-reader }
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: selfhost-dashboard-ingress-reader
+subjects:
+  - kind: ServiceAccount
+    name: selfhost-dashboard
+    namespace: default
+```
+
+Deploy the dashboard pod with `serviceAccountName: selfhost-dashboard` and it
+picks up the in-cluster token automatically. Running **outside** the cluster
+instead? Mount a kubeconfig and point `KUBECONFIG` at it.
+
+**Environment variables**
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `KUBECONFIG` | `~/.kube/config` | Kubeconfig path (only used when not in-cluster) |
+| `K8S_DISCOVERY` | _(unset)_ | Set to `off` to disable ingress discovery |
+| `DISCOVERY_INTERVAL_MS` | `30000` | Poll interval, shared with Docker discovery |
+
 ### YAML config (optional)
 
 Prefer a file? Mount `services.yaml` at `/app/services.yaml`:
@@ -233,7 +303,7 @@ npm run test --workspace=backend   # run the backend test suite
 - [x] Live per-container CPU & memory
 - [ ] More alert channels (Telegram, email)
 - [x] Widgets (embed any page + notes with links)
-- [ ] Kubernetes ingress discovery
+- [x] Kubernetes ingress discovery
 
 ---
 
